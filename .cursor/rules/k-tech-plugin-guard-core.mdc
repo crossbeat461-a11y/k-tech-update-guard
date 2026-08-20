@@ -1,0 +1,27 @@
+---
+description: K-Tech Plugin Guard — Obsidian plugin core rules
+globs:
+  - "**/*"
+---
+
+# K-Tech Plugin Guard — コアルール
+
+正本: `HANDOFF.md` · `README.md` · `manifest.json`
+
+## スコープ
+
+- 手動確認 → 件数表示 → 選択して GitHub Release から更新
+- 第三者サーバーに導入プラグイン一覧を送らない
+- Buy Me a Coffee はインストール時とアップデート時に出す
+
+## コーディング
+
+- TypeScript + esbuild。`main.js` はビルド成果物としてコミット
+- 通信先は GitHub と `obsidianmd/obsidian-releases` の公開 JSON のみ
+- GitHub トークンはローカル設定のみ。ログに出さない
+- `manifest.json` の `description` に Obsidian を含めない
+
+## リリース
+
+- TableCSV と同型: tag push → GitHub Actions → main.js / manifest.json / styles.css
+- コミット・push はユーザー明示指示時のみ
