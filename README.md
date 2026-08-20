@@ -8,6 +8,8 @@
 
 **[English](#readme-en)** · **[日本語](#readme-ja)**
 
+Website: [k-tech-update-guard-lp.vercel.app](https://k-tech-update-guard-lp.vercel.app/)
+
 K-Tech Studio tool that **checks community updates when you ask**, then lets you **select which ones to install**.
 
 UI languages: English, Japanese, Simplified Chinese, Traditional Chinese, Korean, Spanish, German, French, Portuguese, Russian.
@@ -61,6 +63,8 @@ MIT
 <a id="readme-ja"></a>
 
 ## 日本語
+
+紹介ページ: [k-tech-update-guard-lp.vercel.app](https://k-tech-update-guard-lp.vercel.app/)
 
 ### できること
 

@@ -10,6 +10,7 @@
 | Name | K-Tech Update Guard |
 | Author | K-Tech Studio |
 | Repo | `crossbeat461-a11y/k-tech-update-guard` |
+| LP | https://k-tech-update-guard-lp.vercel.app/ |
 | Version | 0.1.2 |
 
 ## Privacy
