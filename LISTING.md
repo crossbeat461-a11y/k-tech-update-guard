@@ -8,7 +8,7 @@ Paste these values in the developer dashboard.
 - **`manifest.json` → `description` must NOT contain the word `Obsidian`.**
 - **`authorUrl`** must be a GitHub **profile** URL, not the repository.
 - **`fundingUrl`** is set to Buy Me a Coffee.
-- **GitHub Release title** must include the version (e.g. `K-Tech Update Guard 0.1.1`).
+- **GitHub Release title** must include the version (e.g. `K-Tech Update Guard 0.1.2`).
 
 ## Short description
 

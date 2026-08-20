@@ -1159,40 +1159,40 @@ var import_obsidian4 = require("obsidian");
 var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
-    this.plugin = plugin;
+    this.host = plugin;
   }
   display() {
     const { containerEl } = this;
+    const settings = this.host.settings;
     containerEl.empty();
-    containerEl.createEl("h2", { text: PLUGIN_NAME });
+    new import_obsidian4.Setting(containerEl).setName(PLUGIN_NAME).setHeading();
     new import_obsidian4.Setting(containerEl).setName(t("checkOnStartup")).setDesc(t("checkOnStartupDesc")).addToggle((toggle) => {
-      toggle.setValue(this.plugin.settings.checkOnStartup);
+      toggle.setValue(settings.checkOnStartup);
       toggle.onChange(async (value) => {
-        this.plugin.settings.checkOnStartup = value;
-        await this.plugin.saveSettings();
+        settings.checkOnStartup = value;
+        await this.host.saveSettings();
       });
     });
     new import_obsidian4.Setting(containerEl).setName(t("ignoreDisabled")).setDesc(t("ignoreDisabledDesc")).addToggle((toggle) => {
-      toggle.setValue(this.plugin.settings.ignoreDisabled);
+      toggle.setValue(settings.ignoreDisabled);
       toggle.onChange(async (value) => {
-        this.plugin.settings.ignoreDisabled = value;
-        await this.plugin.saveSettings();
+        settings.ignoreDisabled = value;
+        await this.host.saveSettings();
       });
     });
     new import_obsidian4.Setting(containerEl).setName(t("hideBeta")).addToggle((toggle) => {
-      toggle.setValue(this.plugin.settings.ignoreBeta);
+      toggle.setValue(settings.ignoreBeta);
       toggle.onChange(async (value) => {
-        this.plugin.settings.ignoreBeta = value;
-        await this.plugin.saveSettings();
+        settings.ignoreBeta = value;
+        await this.host.saveSettings();
       });
     });
     new import_obsidian4.Setting(containerEl).setName(t("daysWait")).setDesc(t("daysWaitDesc")).addSlider((slider) => {
       slider.setLimits(0, 14, 1);
-      slider.setDynamicTooltip();
-      slider.setValue(this.plugin.settings.daysUntilShow);
+      slider.setValue(settings.daysUntilShow);
       slider.onChange(async (value) => {
-        this.plugin.settings.daysUntilShow = value;
-        await this.plugin.saveSettings();
+        settings.daysUntilShow = value;
+        await this.host.saveSettings();
       });
     });
     new import_obsidian4.Setting(containerEl).setName(t("lazyHandling")).setDesc(t("lazyHandlingDesc")).addDropdown((dropdown) => {
@@ -1200,42 +1200,40 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
       dropdown.addOption("wait-loaded", t("lazyWaitLoaded"));
       dropdown.addOption("fixed-delay", t("lazyFixedDelay"));
       dropdown.addOption("none", t("lazyNone"));
-      dropdown.setValue(this.plugin.settings.lazyStrategy);
+      dropdown.setValue(settings.lazyStrategy);
       dropdown.onChange(async (value) => {
-        this.plugin.settings.lazyStrategy = value;
-        await this.plugin.saveSettings();
+        settings.lazyStrategy = value;
+        await this.host.saveSettings();
         this.display();
       });
     });
-    if (this.plugin.settings.lazyStrategy === "fixed-delay") {
+    if (settings.lazyStrategy === "fixed-delay") {
       new import_obsidian4.Setting(containerEl).setName(t("waitSeconds")).addSlider((slider) => {
         slider.setLimits(1, 30, 1);
-        slider.setDynamicTooltip();
-        slider.setValue(this.plugin.settings.fixedDelaySeconds);
+        slider.setValue(settings.fixedDelaySeconds);
         slider.onChange(async (value) => {
-          this.plugin.settings.fixedDelaySeconds = value;
-          await this.plugin.saveSettings();
+          settings.fixedDelaySeconds = value;
+          await this.host.saveSettings();
         });
       });
     }
-    if (this.plugin.settings.lazyStrategy === "wait-loaded") {
+    if (settings.lazyStrategy === "wait-loaded") {
       new import_obsidian4.Setting(containerEl).setName(t("waitTimeout")).addSlider((slider) => {
         slider.setLimits(5, 60, 1);
-        slider.setDynamicTooltip();
-        slider.setValue(this.plugin.settings.waitLoadedTimeoutSeconds);
+        slider.setValue(settings.waitLoadedTimeoutSeconds);
         slider.onChange(async (value) => {
-          this.plugin.settings.waitLoadedTimeoutSeconds = value;
-          await this.plugin.saveSettings();
+          settings.waitLoadedTimeoutSeconds = value;
+          await this.host.saveSettings();
         });
       });
     }
     new import_obsidian4.Setting(containerEl).setName(t("githubToken")).setDesc(t("githubTokenDesc")).addText((text) => {
       text.inputEl.type = "password";
       text.setPlaceholder("ghp_\u2026");
-      text.setValue(this.plugin.settings.githubToken);
+      text.setValue(settings.githubToken);
       text.onChange(async (value) => {
-        this.plugin.settings.githubToken = value.trim();
-        await this.plugin.saveSettings();
+        settings.githubToken = value.trim();
+        await this.host.saveSettings();
       });
     });
     new import_obsidian4.Setting(containerEl).setName(t("bmc")).setDesc(t("supportOptional")).addButton((button) => {
