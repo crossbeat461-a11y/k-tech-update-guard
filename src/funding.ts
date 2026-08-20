@@ -17,36 +17,26 @@ export class FundingModal extends Modal {
 
     const heading =
       this.kind === "install"
-        ? t("インストールありがとうございます", "Thanks for installing!")
-        : t(`v${this.version} に更新しました`, `Updated to ${this.version}`);
+        ? t("thanksInstall")
+        : t("updatedTo", { version: this.version });
     contentEl.createEl("h3", { text: heading });
 
     contentEl.createEl("p", {
       text:
-        this.kind === "install"
-          ? t(
-              "コミュニティプラグインの更新を、選んでから入れられます。役に立ったら開発の励みにしてください（任意）。",
-              "Check community plugin updates, then install only what you select. If this helps, consider supporting development (optional)."
-            )
-          : t(
-              "新しい版に更新されました。役に立ったら、開発の励みにしてください（任意）。",
-              "Thanks for updating. If this plugin helps your workflow, consider supporting development (optional)."
-            ),
+        this.kind === "install" ? t("thanksInstallBody") : t("thanksUpdateBody"),
     });
 
     const actions = contentEl.createDiv({ cls: "modal-button-container" });
     const coffeeBtn = actions.createEl("button", {
       cls: "mod-cta",
-      text: t("☕ Buy Me a Coffee", "☕ Buy Me a Coffee"),
+      text: "☕ " + t("bmc"),
     });
     coffeeBtn.addEventListener("click", () => {
       window.open(FUNDING_URL, "_blank");
       this.close();
     });
 
-    const laterBtn = actions.createEl("button", {
-      text: t("あとで", "Maybe later"),
-    });
+    const laterBtn = actions.createEl("button", { text: t("later") });
     laterBtn.addEventListener("click", () => this.close());
   }
 

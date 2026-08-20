@@ -23,18 +23,20 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/main.ts
 var main_exports = {};
 __export(main_exports, {
-  default: () => KTechPluginGuard
+  default: () => KTechUpdateGuard
 });
 module.exports = __toCommonJS(main_exports);
 var import_obsidian5 = require("obsidian");
 
 // src/constants.ts
-var PLUGIN_NAME = "K-Tech Plugin Guard";
+var PLUGIN_ID = "k-tech-update-guard";
+var PLUGIN_NAME = "K-Tech Update Guard";
 var FUNDING_URL = "https://buymeacoffee.com/k_tech_studio";
+var OWN_REPO = "crossbeat461-a11y/k-tech-update-guard";
 var COMMUNITY_PLUGINS_URL = "https://raw.githubusercontent.com/obsidianmd/obsidian-releases/master/community-plugins.json";
 var GITHUB_API = "https://api.github.com";
 var CHECK_CONCURRENCY = 4;
-var USER_AGENT = "k-tech-plugin-guard";
+var USER_AGENT = "k-tech-update-guard";
 
 // src/github.ts
 var import_obsidian = require("obsidian");
@@ -228,22 +230,561 @@ async function loadCommunityRegistry() {
 }
 
 // src/i18n.ts
-function isJapaneseLocale() {
+var en = {
+  thanksInstall: "Thanks for installing!",
+  updatedTo: "Updated to {version}",
+  thanksInstallBody: "Check community updates, then install only what you select. If this helps, consider supporting development (optional).",
+  thanksUpdateBody: "Thanks for updating. If this helps your workflow, consider supporting development (optional).",
+  bmc: "Buy Me a Coffee",
+  later: "Maybe later",
+  noUpdatesTitle: "No updates right now",
+  noUpdatesBody: "Installed community items are up to date for this check.",
+  close: "Close",
+  updatesTitle: "{count} update(s) available",
+  updatesBody: "Select what to install. Files come from each GitHub Release (same as the official updater).",
+  selectAll: "Select all",
+  beta: " (beta)",
+  updateSelected: "Update selected",
+  cancel: "Cancel",
+  noneSelected: "Nothing selected",
+  updating: "Updating {name}\u2026",
+  rateLimitedShort: "GitHub rate limit reached",
+  updatedCount: "Updated {count} item(s)",
+  statusCheck: "Check",
+  cmdCheck: "Check for updates",
+  alreadyChecking: "Already checking",
+  statusChecking: "Checking\u2026",
+  checkingNotice: "Checking for updates\u2026",
+  rateLimitedLong: "GitHub rate limit reached. Add a token in settings, or try again later.",
+  statusUpToDate: "Up to date",
+  statusError: "Error",
+  checkFailed: "Check failed: {error}",
+  checkOnStartup: "Check on startup",
+  checkOnStartupDesc: "When off, GitHub is contacted only from the button or command.",
+  ignoreDisabled: "Ignore disabled items",
+  ignoreDisabledDesc: "With Lazy Loader, only items it marks Disabled are skipped. Delayed items stay included.",
+  hideBeta: "Hide beta versions",
+  daysWait: "Days to wait after a release",
+  daysWaitDesc: "0 shows a release as soon as this check finds it.",
+  lazyHandling: "Delayed loading",
+  lazyHandlingDesc: "Avoid treating Lazy Loader delayed items as disabled.",
+  lazyReadConfig: "Read Lazy Loader settings (recommended)",
+  lazyWaitLoaded: "Wait until delayed items load",
+  lazyFixedDelay: "Wait a fixed number of seconds",
+  lazyNone: "Do not wait",
+  waitSeconds: "Wait seconds",
+  waitTimeout: "Wait timeout (seconds)",
+  githubToken: "GitHub token (optional)",
+  githubTokenDesc: "Unauthenticated checks are about 60 GitHub requests per hour. A PAT is stored locally only and is never sent to a K-Tech server.",
+  supportOptional: "Support is optional.",
+  selfUpdatedReload: "K-Tech Update Guard was updated. Reloading\u2026",
+  missingReleaseFiles: "Release is missing main.js or manifest.json"
+};
+var ja = {
+  thanksInstall: "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059",
+  updatedTo: "{version} \u306B\u66F4\u65B0\u3057\u307E\u3057\u305F",
+  thanksInstallBody: "\u30B3\u30DF\u30E5\u30CB\u30C6\u30A3\u306E\u66F4\u65B0\u3092\u3001\u9078\u3093\u3067\u304B\u3089\u5165\u308C\u3089\u308C\u307E\u3059\u3002\u5F79\u306B\u7ACB\u3063\u305F\u3089\u958B\u767A\u306E\u52B1\u307F\u306B\u3057\u3066\u304F\u3060\u3055\u3044\uFF08\u4EFB\u610F\uFF09\u3002",
+  thanksUpdateBody: "\u65B0\u3057\u3044\u7248\u306B\u66F4\u65B0\u3055\u308C\u307E\u3057\u305F\u3002\u5F79\u306B\u7ACB\u3063\u305F\u3089\u3001\u958B\u767A\u306E\u52B1\u307F\u306B\u3057\u3066\u304F\u3060\u3055\u3044\uFF08\u4EFB\u610F\uFF09\u3002",
+  bmc: "Buy Me a Coffee",
+  later: "\u3042\u3068\u3067",
+  noUpdatesTitle: "\u4ECA\u306E\u3068\u3053\u308D\u66F4\u65B0\u306F\u3042\u308A\u307E\u305B\u3093",
+  noUpdatesBody: "\u5C0E\u5165\u3057\u3066\u3044\u308B\u30B3\u30DF\u30E5\u30CB\u30C6\u30A3\u9805\u76EE\u306F\u3001\u78BA\u8A8D\u3057\u305F\u7BC4\u56F2\u3067\u306F\u6700\u65B0\u3067\u3059\u3002",
+  close: "\u9589\u3058\u308B",
+  updatesTitle: "{count} \u4EF6\u306E\u66F4\u65B0\u304C\u3042\u308A\u307E\u3059",
+  updatesBody: "\u5165\u308C\u308B\u3082\u306E\u306B\u30C1\u30A7\u30C3\u30AF\u3092\u4ED8\u3051\u3066\u304B\u3089\u66F4\u65B0\u3057\u3066\u304F\u3060\u3055\u3044\u3002GitHub Release \u306E\u914D\u5E03\u30D5\u30A1\u30A4\u30EB\u3092\u4F7F\u3044\u307E\u3059\u3002",
+  selectAll: "\u3059\u3079\u3066\u9078\u629E",
+  beta: "\uFF08\u30D9\u30FC\u30BF\uFF09",
+  updateSelected: "\u9078\u629E\u3057\u305F\u9805\u76EE\u3092\u66F4\u65B0",
+  cancel: "\u30AD\u30E3\u30F3\u30BB\u30EB",
+  noneSelected: "\u9078\u629E\u3055\u308C\u3066\u3044\u307E\u305B\u3093",
+  updating: "{name} \u3092\u66F4\u65B0\u3057\u3066\u3044\u307E\u3059\u2026",
+  rateLimitedShort: "GitHub \u306E\u56DE\u6570\u5236\u9650\u306B\u9054\u3057\u307E\u3057\u305F",
+  updatedCount: "{count} \u4EF6\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F",
+  statusCheck: "\u78BA\u8A8D",
+  cmdCheck: "\u66F4\u65B0\u3092\u78BA\u8A8D",
+  alreadyChecking: "\u3059\u3067\u306B\u78BA\u8A8D\u4E2D\u3067\u3059",
+  statusChecking: "\u78BA\u8A8D\u4E2D\u2026",
+  checkingNotice: "\u66F4\u65B0\u3092\u78BA\u8A8D\u3057\u3066\u3044\u307E\u3059\u2026",
+  rateLimitedLong: "GitHub \u306E\u56DE\u6570\u5236\u9650\u306B\u9054\u3057\u307E\u3057\u305F\u3002\u8A2D\u5B9A\u306E\u30C8\u30FC\u30AF\u30F3\u3092\u4F7F\u3046\u304B\u3001\u6642\u9593\u3092\u304A\u3044\u3066\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+  statusUpToDate: "\u6700\u65B0",
+  statusError: "\u30A8\u30E9\u30FC",
+  checkFailed: "\u78BA\u8A8D\u306B\u5931\u6557\u3057\u307E\u3057\u305F: {error}",
+  checkOnStartup: "\u8D77\u52D5\u6642\u306B\u78BA\u8A8D\u3059\u308B",
+  checkOnStartupDesc: "\u30AA\u30D5\u306E\u3068\u304D\u306F\u3001\u30DC\u30BF\u30F3\u307E\u305F\u306F\u30B3\u30DE\u30F3\u30C9\u3067\u306E\u307F GitHub \u3092\u898B\u306B\u884C\u304D\u307E\u3059\u3002",
+  ignoreDisabled: "\u7121\u52B9\u306E\u9805\u76EE\u306F\u5BFE\u8C61\u5916",
+  ignoreDisabledDesc: "Lazy Loader \u304C\u3042\u308B\u3068\u304D\u306F\u3001\u305D\u3061\u3089\u306E\u300C\u7121\u52B9\u300D\u3060\u3051\u3092\u7121\u52B9\u3068\u307F\u306A\u3057\u307E\u3059\uFF08\u9045\u5EF6\u8AAD\u307F\u8FBC\u307F\u306F\u5BFE\u8C61\u306B\u6B8B\u3057\u307E\u3059\uFF09\u3002",
+  hideBeta: "\u30D9\u30FC\u30BF\u7248\u3092\u51FA\u3055\u306A\u3044",
+  daysWait: "\u516C\u958B\u304B\u3089\u4F55\u65E5\u5F85\u3064\u304B",
+  daysWaitDesc: "0 \u306A\u3089\u3001\u78BA\u8A8D\u3057\u305F\u6642\u70B9\u306E\u6700\u65B0\u3092\u51FA\u3057\u307E\u3059\u3002",
+  lazyHandling: "\u9045\u5EF6\u8AAD\u307F\u8FBC\u307F\u306E\u6271\u3044",
+  lazyHandlingDesc: "Lazy Loader \u5229\u7528\u6642\u306B\u3001\u307E\u3060\u8AAD\u307F\u8FBC\u307E\u308C\u3066\u3044\u306A\u3044\u9805\u76EE\u3092\u7121\u52B9\u3068\u8AA4\u3089\u306A\u3044\u305F\u3081\u306E\u65B9\u6CD5\u3067\u3059\u3002",
+  lazyReadConfig: "Lazy Loader \u306E\u8A2D\u5B9A\u3092\u8AAD\u3080\uFF08\u63A8\u5968\uFF09",
+  lazyWaitLoaded: "\u8AAD\u307F\u8FBC\u307F\u5B8C\u4E86\u307E\u3067\u5F85\u3064",
+  lazyFixedDelay: "\u56FA\u5B9A\u79D2\u6570\u5F85\u3064",
+  lazyNone: "\u5F85\u305F\u306A\u3044",
+  waitSeconds: "\u5F85\u6A5F\u79D2\u6570",
+  waitTimeout: "\u5F85\u3061\u6642\u9593\u306E\u4E0A\u9650\uFF08\u79D2\uFF09",
+  githubToken: "GitHub \u30C8\u30FC\u30AF\u30F3\uFF08\u4EFB\u610F\uFF09",
+  githubTokenDesc: "\u672A\u8A8D\u8A3C\u306F1\u6642\u9593\u3042\u305F\u308A\u7D0460\u56DE\u3067\u3059\u3002\u591A\u3044\u3068\u304D\u306F PAT \u3092\u30ED\u30FC\u30AB\u30EB\u306B\u3060\u3051\u4FDD\u5B58\u3057\u307E\u3059\u3002\u4F5C\u8005\u30B5\u30FC\u30D0\u30FC\u306B\u306F\u9001\u308A\u307E\u305B\u3093\u3002",
+  supportOptional: "\u958B\u767A\u652F\u63F4\u306F\u4EFB\u610F\u3067\u3059\u3002",
+  selfUpdatedReload: "K-Tech Update Guard \u3092\u66F4\u65B0\u3057\u307E\u3057\u305F\u3002\u518D\u8AAD\u307F\u8FBC\u307F\u3057\u307E\u3059\u2026",
+  missingReleaseFiles: "\u30EA\u30EA\u30FC\u30B9\u306B main.js \u307E\u305F\u306F manifest.json \u304C\u3042\u308A\u307E\u305B\u3093"
+};
+var zhCn = {
+  thanksInstall: "\u611F\u8C22\u5B89\u88C5\uFF01",
+  updatedTo: "\u5DF2\u66F4\u65B0\u5230 {version}",
+  thanksInstallBody: "\u53EF\u5148\u68C0\u67E5\u793E\u533A\u66F4\u65B0\uFF0C\u518D\u53EA\u5B89\u88C5\u4F60\u52FE\u9009\u7684\u9879\u76EE\u3002\u5982\u679C\u6709\u5E2E\u52A9\uFF0C\u6B22\u8FCE\u652F\u6301\u5F00\u53D1\uFF08\u53EF\u9009\uFF09\u3002",
+  thanksUpdateBody: "\u5DF2\u66F4\u65B0\u3002\u5982\u679C\u5BF9\u4F60\u6709\u5E2E\u52A9\uFF0C\u6B22\u8FCE\u652F\u6301\u5F00\u53D1\uFF08\u53EF\u9009\uFF09\u3002",
+  bmc: "Buy Me a Coffee",
+  later: "\u4EE5\u540E\u518D\u8BF4",
+  noUpdatesTitle: "\u76EE\u524D\u6CA1\u6709\u66F4\u65B0",
+  noUpdatesBody: "\u8FD9\u6B21\u68C0\u67E5\u4E2D\uFF0C\u5DF2\u5B89\u88C5\u7684\u793E\u533A\u9879\u76EE\u90FD\u662F\u6700\u65B0\u7684\u3002",
+  close: "\u5173\u95ED",
+  updatesTitle: "\u6709 {count} \u4E2A\u66F4\u65B0",
+  updatesBody: "\u52FE\u9009\u8981\u5B89\u88C5\u7684\u9879\u76EE\u3002\u6587\u4EF6\u6765\u81EA\u5404 GitHub Release\uFF08\u4E0E\u5B98\u65B9\u66F4\u65B0\u76F8\u540C\uFF09\u3002",
+  selectAll: "\u5168\u9009",
+  beta: "\uFF08\u6D4B\u8BD5\u7248\uFF09",
+  updateSelected: "\u66F4\u65B0\u6240\u9009",
+  cancel: "\u53D6\u6D88",
+  noneSelected: "\u5C1A\u672A\u9009\u62E9",
+  updating: "\u6B63\u5728\u66F4\u65B0 {name}\u2026",
+  rateLimitedShort: "\u5DF2\u8FBE\u5230 GitHub \u8BF7\u6C42\u4E0A\u9650",
+  updatedCount: "\u5DF2\u66F4\u65B0 {count} \u9879",
+  statusCheck: "\u68C0\u67E5",
+  cmdCheck: "\u68C0\u67E5\u66F4\u65B0",
+  alreadyChecking: "\u6B63\u5728\u68C0\u67E5",
+  statusChecking: "\u68C0\u67E5\u4E2D\u2026",
+  checkingNotice: "\u6B63\u5728\u68C0\u67E5\u66F4\u65B0\u2026",
+  rateLimitedLong: "\u5DF2\u8FBE\u5230 GitHub \u8BF7\u6C42\u4E0A\u9650\u3002\u8BF7\u5728\u8BBE\u7F6E\u4E2D\u6DFB\u52A0\u4EE4\u724C\uFF0C\u6216\u7A0D\u540E\u518D\u8BD5\u3002",
+  statusUpToDate: "\u5DF2\u662F\u6700\u65B0",
+  statusError: "\u9519\u8BEF",
+  checkFailed: "\u68C0\u67E5\u5931\u8D25\uFF1A{error}",
+  checkOnStartup: "\u542F\u52A8\u65F6\u68C0\u67E5",
+  checkOnStartupDesc: "\u5173\u95ED\u540E\uFF0C\u4EC5\u5728\u70B9\u51FB\u6309\u94AE\u6216\u547D\u4EE4\u65F6\u8BBF\u95EE GitHub\u3002",
+  ignoreDisabled: "\u5FFD\u7565\u5DF2\u7981\u7528\u9879",
+  ignoreDisabledDesc: "\u82E5\u4F7F\u7528 Lazy Loader\uFF0C\u4EC5\u5C06\u5176\u4E2D\u6807\u8BB0\u4E3A\u7981\u7528\u7684\u9879\u76EE\u6392\u9664\u3002\u5EF6\u8FDF\u52A0\u8F7D\u7684\u9879\u76EE\u4ECD\u4F1A\u5305\u542B\u3002",
+  hideBeta: "\u9690\u85CF\u6D4B\u8BD5\u7248",
+  daysWait: "\u53D1\u5E03\u540E\u7B49\u5F85\u5929\u6570",
+  daysWaitDesc: "0 \u8868\u793A\u672C\u6B21\u68C0\u67E5\u4E00\u53D1\u73B0\u5C31\u663E\u793A\u3002",
+  lazyHandling: "\u5EF6\u8FDF\u52A0\u8F7D\u5904\u7406",
+  lazyHandlingDesc: "\u907F\u514D\u628A Lazy Loader \u5C1A\u672A\u52A0\u8F7D\u7684\u9879\u76EE\u5F53\u6210\u5DF2\u7981\u7528\u3002",
+  lazyReadConfig: "\u8BFB\u53D6 Lazy Loader \u8BBE\u7F6E\uFF08\u63A8\u8350\uFF09",
+  lazyWaitLoaded: "\u7B49\u5230\u5EF6\u8FDF\u9879\u52A0\u8F7D\u5B8C\u6210",
+  lazyFixedDelay: "\u56FA\u5B9A\u7B49\u5F85\u79D2\u6570",
+  lazyNone: "\u4E0D\u7B49\u5F85",
+  waitSeconds: "\u7B49\u5F85\u79D2\u6570",
+  waitTimeout: "\u7B49\u5F85\u4E0A\u9650\uFF08\u79D2\uFF09",
+  githubToken: "GitHub \u4EE4\u724C\uFF08\u53EF\u9009\uFF09",
+  githubTokenDesc: "\u672A\u8BA4\u8BC1\u65F6\u6BCF\u5C0F\u65F6\u7EA6 60 \u6B21\u8BF7\u6C42\u3002PAT \u53EA\u4FDD\u5B58\u5728\u672C\u5730\uFF0C\u4E0D\u4F1A\u53D1\u5230 K-Tech \u670D\u52A1\u5668\u3002",
+  supportOptional: "\u652F\u6301\u5F00\u53D1\u4E3A\u53EF\u9009\u9879\u3002",
+  selfUpdatedReload: "K-Tech Update Guard \u5DF2\u66F4\u65B0\u3002\u6B63\u5728\u91CD\u65B0\u52A0\u8F7D\u2026",
+  missingReleaseFiles: "\u8BE5 Release \u7F3A\u5C11 main.js \u6216 manifest.json"
+};
+var zhTw = {
+  thanksInstall: "\u611F\u8B1D\u5B89\u88DD\uFF01",
+  updatedTo: "\u5DF2\u66F4\u65B0\u5230 {version}",
+  thanksInstallBody: "\u53EF\u5148\u6AA2\u67E5\u793E\u7FA4\u66F4\u65B0\uFF0C\u518D\u53EA\u5B89\u88DD\u4F60\u52FE\u9078\u7684\u9805\u76EE\u3002\u5982\u679C\u6709\u5E6B\u52A9\uFF0C\u6B61\u8FCE\u652F\u6301\u958B\u767C\uFF08\u9078\u7528\uFF09\u3002",
+  thanksUpdateBody: "\u5DF2\u66F4\u65B0\u3002\u5982\u679C\u5C0D\u4F60\u6709\u5E6B\u52A9\uFF0C\u6B61\u8FCE\u652F\u6301\u958B\u767C\uFF08\u9078\u7528\uFF09\u3002",
+  bmc: "Buy Me a Coffee",
+  later: "\u7A0D\u5F8C\u518D\u8AAA",
+  noUpdatesTitle: "\u76EE\u524D\u6C92\u6709\u66F4\u65B0",
+  noUpdatesBody: "\u9019\u6B21\u6AA2\u67E5\u4E2D\uFF0C\u5DF2\u5B89\u88DD\u7684\u793E\u7FA4\u9805\u76EE\u90FD\u662F\u6700\u65B0\u7684\u3002",
+  close: "\u95DC\u9589",
+  updatesTitle: "\u6709 {count} \u500B\u66F4\u65B0",
+  updatesBody: "\u52FE\u9078\u8981\u5B89\u88DD\u7684\u9805\u76EE\u3002\u6A94\u6848\u4F86\u81EA\u5404 GitHub Release\uFF08\u8207\u5B98\u65B9\u66F4\u65B0\u76F8\u540C\uFF09\u3002",
+  selectAll: "\u5168\u9078",
+  beta: "\uFF08\u6E2C\u8A66\u7248\uFF09",
+  updateSelected: "\u66F4\u65B0\u6240\u9078",
+  cancel: "\u53D6\u6D88",
+  noneSelected: "\u5C1A\u672A\u9078\u64C7",
+  updating: "\u6B63\u5728\u66F4\u65B0 {name}\u2026",
+  rateLimitedShort: "\u5DF2\u9054 GitHub \u8ACB\u6C42\u4E0A\u9650",
+  updatedCount: "\u5DF2\u66F4\u65B0 {count} \u9805",
+  statusCheck: "\u6AA2\u67E5",
+  cmdCheck: "\u6AA2\u67E5\u66F4\u65B0",
+  alreadyChecking: "\u6B63\u5728\u6AA2\u67E5",
+  statusChecking: "\u6AA2\u67E5\u4E2D\u2026",
+  checkingNotice: "\u6B63\u5728\u6AA2\u67E5\u66F4\u65B0\u2026",
+  rateLimitedLong: "\u5DF2\u9054 GitHub \u8ACB\u6C42\u4E0A\u9650\u3002\u8ACB\u5728\u8A2D\u5B9A\u4E2D\u65B0\u589E\u6B0A\u6756\uFF0C\u6216\u7A0D\u5F8C\u518D\u8A66\u3002",
+  statusUpToDate: "\u5DF2\u662F\u6700\u65B0",
+  statusError: "\u932F\u8AA4",
+  checkFailed: "\u6AA2\u67E5\u5931\u6557\uFF1A{error}",
+  checkOnStartup: "\u555F\u52D5\u6642\u6AA2\u67E5",
+  checkOnStartupDesc: "\u95DC\u9589\u5F8C\uFF0C\u50C5\u5728\u6309\u4E0B\u6309\u9215\u6216\u6307\u4EE4\u6642\u9023\u7DDA GitHub\u3002",
+  ignoreDisabled: "\u5FFD\u7565\u5DF2\u505C\u7528\u9805\u76EE",
+  ignoreDisabledDesc: "\u82E5\u4F7F\u7528 Lazy Loader\uFF0C\u53EA\u6392\u9664\u5176\u4E2D\u6A19\u8A18\u70BA\u505C\u7528\u7684\u9805\u76EE\u3002\u5EF6\u9072\u8F09\u5165\u7684\u9805\u76EE\u4ECD\u6703\u5305\u542B\u3002",
+  hideBeta: "\u96B1\u85CF\u6E2C\u8A66\u7248",
+  daysWait: "\u767C\u5E03\u5F8C\u7B49\u5F85\u5929\u6578",
+  daysWaitDesc: "0 \u8868\u793A\u9019\u6B21\u6AA2\u67E5\u4E00\u767C\u73FE\u5C31\u986F\u793A\u3002",
+  lazyHandling: "\u5EF6\u9072\u8F09\u5165\u8655\u7406",
+  lazyHandlingDesc: "\u907F\u514D\u628A Lazy Loader \u5C1A\u672A\u8F09\u5165\u7684\u9805\u76EE\u7576\u6210\u5DF2\u505C\u7528\u3002",
+  lazyReadConfig: "\u8B80\u53D6 Lazy Loader \u8A2D\u5B9A\uFF08\u5EFA\u8B70\uFF09",
+  lazyWaitLoaded: "\u7B49\u5230\u5EF6\u9072\u9805\u76EE\u8F09\u5165\u5B8C\u6210",
+  lazyFixedDelay: "\u56FA\u5B9A\u7B49\u5F85\u79D2\u6578",
+  lazyNone: "\u4E0D\u7B49\u5F85",
+  waitSeconds: "\u7B49\u5F85\u79D2\u6578",
+  waitTimeout: "\u7B49\u5F85\u4E0A\u9650\uFF08\u79D2\uFF09",
+  githubToken: "GitHub \u6B0A\u6756\uFF08\u9078\u7528\uFF09",
+  githubTokenDesc: "\u672A\u9A57\u8B49\u6642\u6BCF\u5C0F\u6642\u7D04 60 \u6B21\u8ACB\u6C42\u3002PAT \u53EA\u5B58\u5728\u672C\u6A5F\uFF0C\u4E0D\u6703\u9001\u5230 K-Tech \u4F3A\u670D\u5668\u3002",
+  supportOptional: "\u652F\u6301\u958B\u767C\u70BA\u9078\u7528\u3002",
+  selfUpdatedReload: "K-Tech Update Guard \u5DF2\u66F4\u65B0\u3002\u6B63\u5728\u91CD\u65B0\u8F09\u5165\u2026",
+  missingReleaseFiles: "\u6B64 Release \u7F3A\u5C11 main.js \u6216 manifest.json"
+};
+var ko = {
+  thanksInstall: "\uC124\uCE58\uD574 \uC8FC\uC154\uC11C \uAC10\uC0AC\uD569\uB2C8\uB2E4!",
+  updatedTo: "{version}(\uC73C)\uB85C \uC5C5\uB370\uC774\uD2B8\uD588\uC2B5\uB2C8\uB2E4",
+  thanksInstallBody: "\uCEE4\uBBA4\uB2C8\uD2F0 \uC5C5\uB370\uC774\uD2B8\uB97C \uD655\uC778\uD55C \uB4A4 \uC120\uD0DD\uD55C \uD56D\uBAA9\uB9CC \uC124\uCE58\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uB3C4\uC6C0\uC774 \uB418\uC5C8\uB2E4\uBA74 \uAC1C\uBC1C \uC9C0\uC6D0\uC744 \uACE0\uB824\uD574 \uC8FC\uC138\uC694(\uC120\uD0DD).",
+  thanksUpdateBody: "\uC5C5\uB370\uC774\uD2B8\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB3C4\uC6C0\uC774 \uB418\uC5C8\uB2E4\uBA74 \uAC1C\uBC1C \uC9C0\uC6D0\uC744 \uACE0\uB824\uD574 \uC8FC\uC138\uC694(\uC120\uD0DD).",
+  bmc: "Buy Me a Coffee",
+  later: "\uB098\uC911\uC5D0",
+  noUpdatesTitle: "\uC9C0\uAE08\uC740 \uC5C5\uB370\uC774\uD2B8\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4",
+  noUpdatesBody: "\uC774\uBC88 \uD655\uC778 \uAE30\uC900, \uC124\uCE58\uB41C \uCEE4\uBBA4\uB2C8\uD2F0 \uD56D\uBAA9\uC740 \uCD5C\uC2E0\uC785\uB2C8\uB2E4.",
+  close: "\uB2EB\uAE30",
+  updatesTitle: "\uC5C5\uB370\uC774\uD2B8 {count}\uAC1C",
+  updatesBody: "\uC124\uCE58\uD560 \uD56D\uBAA9\uC744 \uC120\uD0DD\uD55C \uB4A4 \uC5C5\uB370\uC774\uD2B8\uD558\uC138\uC694. \uD30C\uC77C\uC740 \uAC01 GitHub Release\uC5D0\uC11C \uAC00\uC838\uC635\uB2C8\uB2E4.",
+  selectAll: "\uBAA8\uB450 \uC120\uD0DD",
+  beta: " (\uBCA0\uD0C0)",
+  updateSelected: "\uC120\uD0DD\uD55C \uD56D\uBAA9 \uC5C5\uB370\uC774\uD2B8",
+  cancel: "\uCDE8\uC18C",
+  noneSelected: "\uC120\uD0DD\uB41C \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4",
+  updating: "{name} \uC5C5\uB370\uC774\uD2B8 \uC911\u2026",
+  rateLimitedShort: "GitHub \uC694\uCCAD \uD55C\uB3C4\uC5D0 \uB3C4\uB2EC\uD588\uC2B5\uB2C8\uB2E4",
+  updatedCount: "{count}\uAC1C\uB97C \uC5C5\uB370\uC774\uD2B8\uD588\uC2B5\uB2C8\uB2E4",
+  statusCheck: "\uD655\uC778",
+  cmdCheck: "\uC5C5\uB370\uC774\uD2B8 \uD655\uC778",
+  alreadyChecking: "\uC774\uBBF8 \uD655\uC778 \uC911\uC785\uB2C8\uB2E4",
+  statusChecking: "\uD655\uC778 \uC911\u2026",
+  checkingNotice: "\uC5C5\uB370\uC774\uD2B8\uB97C \uD655\uC778\uD558\uB294 \uC911\u2026",
+  rateLimitedLong: "GitHub \uC694\uCCAD \uD55C\uB3C4\uC5D0 \uB3C4\uB2EC\uD588\uC2B5\uB2C8\uB2E4. \uC124\uC815\uC5D0 \uD1A0\uD070\uC744 \uCD94\uAC00\uD558\uAC70\uB098 \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+  statusUpToDate: "\uCD5C\uC2E0",
+  statusError: "\uC624\uB958",
+  checkFailed: "\uD655\uC778 \uC2E4\uD328: {error}",
+  checkOnStartup: "\uC2DC\uC791 \uC2DC \uD655\uC778",
+  checkOnStartupDesc: "\uB044\uBA74 \uBC84\uD2BC\uC774\uB098 \uBA85\uB839\uC73C\uB85C\uB9CC GitHub\uC5D0 \uC811\uC18D\uD569\uB2C8\uB2E4.",
+  ignoreDisabled: "\uBE44\uD65C\uC131 \uD56D\uBAA9 \uC81C\uC678",
+  ignoreDisabledDesc: "Lazy Loader\uAC00 \uC788\uC73C\uBA74 \uAC70\uAE30\uC11C \uBE44\uD65C\uC131\uC73C\uB85C \uD45C\uC2DC\uD55C \uD56D\uBAA9\uB9CC \uAC74\uB108\uB701\uB2C8\uB2E4. \uC9C0\uC5F0 \uB85C\uB4DC \uD56D\uBAA9\uC740 \uD3EC\uD568\uB429\uB2C8\uB2E4.",
+  hideBeta: "\uBCA0\uD0C0 \uBC84\uC804 \uC228\uAE30\uAE30",
+  daysWait: "\uCD9C\uC2DC \uD6C4 \uB300\uAE30 \uC77C\uC218",
+  daysWaitDesc: "0\uC774\uBA74 \uC774\uBC88 \uD655\uC778\uC5D0\uC11C \uBC1C\uACAC\uB418\uB294 \uC989\uC2DC \uD45C\uC2DC\uD569\uB2C8\uB2E4.",
+  lazyHandling: "\uC9C0\uC5F0 \uB85C\uB4DC \uCC98\uB9AC",
+  lazyHandlingDesc: "Lazy Loader\uAC00 \uC544\uC9C1 \uBD88\uB7EC\uC624\uC9C0 \uC54A\uC740 \uD56D\uBAA9\uC744 \uBE44\uD65C\uC131\uC73C\uB85C \uC624\uC778\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+  lazyReadConfig: "Lazy Loader \uC124\uC815 \uC77D\uAE30(\uAD8C\uC7A5)",
+  lazyWaitLoaded: "\uC9C0\uC5F0 \uD56D\uBAA9\uC774 \uB85C\uB4DC\uB420 \uB54C\uAE4C\uC9C0 \uB300\uAE30",
+  lazyFixedDelay: "\uACE0\uC815 \uCD08 \uB300\uAE30",
+  lazyNone: "\uB300\uAE30\uD558\uC9C0 \uC54A\uC74C",
+  waitSeconds: "\uB300\uAE30 \uCD08",
+  waitTimeout: "\uB300\uAE30 \uC81C\uD55C(\uCD08)",
+  githubToken: "GitHub \uD1A0\uD070(\uC120\uD0DD)",
+  githubTokenDesc: "\uC778\uC99D \uC5C6\uC774\uB294 \uC2DC\uAC04\uB2F9 \uC57D 60\uD68C\uC785\uB2C8\uB2E4. PAT\uB294 \uAE30\uAE30\uC5D0\uB9CC \uC800\uC7A5\uB418\uBA70 K-Tech \uC11C\uBC84\uB85C \uBCF4\uB0B4\uC9C0\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+  supportOptional: "\uD6C4\uC6D0\uC740 \uC120\uD0DD \uC0AC\uD56D\uC785\uB2C8\uB2E4.",
+  selfUpdatedReload: "K-Tech Update Guard\uAC00 \uC5C5\uB370\uC774\uD2B8\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uBD88\uB7EC\uC624\uB294 \uC911\u2026",
+  missingReleaseFiles: "\uB9B4\uB9AC\uC2A4\uC5D0 main.js \uB610\uB294 manifest.json\uC774 \uC5C6\uC2B5\uB2C8\uB2E4"
+};
+var es = {
+  thanksInstall: "\xA1Gracias por instalar!",
+  updatedTo: "Actualizado a {version}",
+  thanksInstallBody: "Consulta las actualizaciones de la comunidad e instala solo lo que elijas. Si te ayuda, considera apoyar el desarrollo (opcional).",
+  thanksUpdateBody: "Gracias por actualizar. Si te ayuda, considera apoyar el desarrollo (opcional).",
+  bmc: "Buy Me a Coffee",
+  later: "M\xE1s tarde",
+  noUpdatesTitle: "No hay actualizaciones ahora",
+  noUpdatesBody: "En esta comprobaci\xF3n, lo instalado de la comunidad est\xE1 al d\xEDa.",
+  close: "Cerrar",
+  updatesTitle: "{count} actualizaci\xF3n(es) disponible(s)",
+  updatesBody: "Elige qu\xE9 instalar. Los archivos salen de cada GitHub Release (igual que el actualizador oficial).",
+  selectAll: "Seleccionar todo",
+  beta: " (beta)",
+  updateSelected: "Actualizar selecci\xF3n",
+  cancel: "Cancelar",
+  noneSelected: "Nada seleccionado",
+  updating: "Actualizando {name}\u2026",
+  rateLimitedShort: "L\xEDmite de GitHub alcanzado",
+  updatedCount: "Se actualizaron {count} elemento(s)",
+  statusCheck: "Comprobar",
+  cmdCheck: "Buscar actualizaciones",
+  alreadyChecking: "Ya se est\xE1 comprobando",
+  statusChecking: "Comprobando\u2026",
+  checkingNotice: "Buscando actualizaciones\u2026",
+  rateLimitedLong: "L\xEDmite de GitHub alcanzado. A\xF1ade un token en ajustes o int\xE9ntalo m\xE1s tarde.",
+  statusUpToDate: "Al d\xEDa",
+  statusError: "Error",
+  checkFailed: "Error al comprobar: {error}",
+  checkOnStartup: "Comprobar al iniciar",
+  checkOnStartupDesc: "Si est\xE1 desactivado, GitHub solo se consulta con el bot\xF3n o el comando.",
+  ignoreDisabled: "Ignorar desactivados",
+  ignoreDisabledDesc: "Con Lazy Loader, solo se omiten los marcados como Disabled. Los de carga diferida se incluyen.",
+  hideBeta: "Ocultar versiones beta",
+  daysWait: "D\xEDas de espera tras el lanzamiento",
+  daysWaitDesc: "0 muestra una versi\xF3n en cuanto esta comprobaci\xF3n la encuentra.",
+  lazyHandling: "Carga diferida",
+  lazyHandlingDesc: "Evita tratar como desactivados los elementos a\xFAn no cargados por Lazy Loader.",
+  lazyReadConfig: "Leer ajustes de Lazy Loader (recomendado)",
+  lazyWaitLoaded: "Esperar a que carguen",
+  lazyFixedDelay: "Esperar un n\xFAmero fijo de segundos",
+  lazyNone: "No esperar",
+  waitSeconds: "Segundos de espera",
+  waitTimeout: "Tiempo m\xE1ximo (segundos)",
+  githubToken: "Token de GitHub (opcional)",
+  githubTokenDesc: "Sin autenticar hay unas 60 peticiones por hora. El PAT se guarda solo en local, no se env\xEDa a un servidor de K-Tech.",
+  supportOptional: "El apoyo es opcional.",
+  selfUpdatedReload: "K-Tech Update Guard se actualiz\xF3. Recargando\u2026",
+  missingReleaseFiles: "Falta main.js o manifest.json en la release"
+};
+var de = {
+  thanksInstall: "Danke f\xFCrs Installieren!",
+  updatedTo: "Aktualisiert auf {version}",
+  thanksInstallBody: "Community-Updates pr\xFCfen und nur Ausgew\xE4hltes installieren. Wenn es hilft, unterst\xFCtze gern die Entwicklung (optional).",
+  thanksUpdateBody: "Danke f\xFCrs Update. Wenn es hilft, unterst\xFCtze gern die Entwicklung (optional).",
+  bmc: "Buy Me a Coffee",
+  later: "Sp\xE4ter",
+  noUpdatesTitle: "Derzeit keine Updates",
+  noUpdatesBody: "Die installierten Community-Eintr\xE4ge sind bei dieser Pr\xFCfung aktuell.",
+  close: "Schlie\xDFen",
+  updatesTitle: "{count} Update(s) verf\xFCgbar",
+  updatesBody: "W\xE4hle aus, was installiert werden soll. Dateien kommen von GitHub Releases (wie der offizielle Updater).",
+  selectAll: "Alle ausw\xE4hlen",
+  beta: " (Beta)",
+  updateSelected: "Auswahl aktualisieren",
+  cancel: "Abbrechen",
+  noneSelected: "Nichts ausgew\xE4hlt",
+  updating: "{name} wird aktualisiert\u2026",
+  rateLimitedShort: "GitHub-Limit erreicht",
+  updatedCount: "{count} Eintrag/Eintr\xE4ge aktualisiert",
+  statusCheck: "Pr\xFCfen",
+  cmdCheck: "Updates pr\xFCfen",
+  alreadyChecking: "Pr\xFCfung l\xE4uft bereits",
+  statusChecking: "Pr\xFCfe\u2026",
+  checkingNotice: "Suche nach Updates\u2026",
+  rateLimitedLong: "GitHub-Limit erreicht. Token in den Einstellungen hinterlegen oder sp\xE4ter erneut versuchen.",
+  statusUpToDate: "Aktuell",
+  statusError: "Fehler",
+  checkFailed: "Pr\xFCfung fehlgeschlagen: {error}",
+  checkOnStartup: "Beim Start pr\xFCfen",
+  checkOnStartupDesc: "Wenn aus, wird GitHub nur per Schaltfl\xE4che oder Befehl abgefragt.",
+  ignoreDisabled: "Deaktivierte ignorieren",
+  ignoreDisabledDesc: "Mit Lazy Loader gelten nur dort als Disabled markierte Eintr\xE4ge als deaktiviert. Verz\xF6gerte bleiben dabei.",
+  hideBeta: "Beta-Versionen ausblenden",
+  daysWait: "Tage nach Ver\xF6ffentlichung warten",
+  daysWaitDesc: "0 zeigt ein Release, sobald diese Pr\xFCfung es findet.",
+  lazyHandling: "Verz\xF6gertes Laden",
+  lazyHandlingDesc: "Verhindert, dass noch nicht geladene Lazy-Loader-Eintr\xE4ge als deaktiviert gelten.",
+  lazyReadConfig: "Lazy-Loader-Einstellungen lesen (empfohlen)",
+  lazyWaitLoaded: "Warten, bis verz\xF6gerte Eintr\xE4ge geladen sind",
+  lazyFixedDelay: "Feste Sekundenzahl warten",
+  lazyNone: "Nicht warten",
+  waitSeconds: "Wartezeit in Sekunden",
+  waitTimeout: "Warte-Timeout (Sekunden)",
+  githubToken: "GitHub-Token (optional)",
+  githubTokenDesc: "Ohne Anmeldung etwa 60 Anfragen pro Stunde. Ein PAT bleibt nur lokal und geht nicht an einen K-Tech-Server.",
+  supportOptional: "Unterst\xFCtzung ist optional.",
+  selfUpdatedReload: "K-Tech Update Guard wurde aktualisiert. Wird neu geladen\u2026",
+  missingReleaseFiles: "Release enth\xE4lt kein main.js oder manifest.json"
+};
+var fr = {
+  thanksInstall: "Merci pour l\u2019installation !",
+  updatedTo: "Mis \xE0 jour vers {version}",
+  thanksInstallBody: "V\xE9rifiez les mises \xE0 jour de la communaut\xE9, puis installez seulement votre s\xE9lection. Un soutien au d\xE9veloppement est facultatif.",
+  thanksUpdateBody: "Merci pour la mise \xE0 jour. Un soutien au d\xE9veloppement est facultatif.",
+  bmc: "Buy Me a Coffee",
+  later: "Plus tard",
+  noUpdatesTitle: "Aucune mise \xE0 jour pour le moment",
+  noUpdatesBody: "Pour cette v\xE9rification, les \xE9l\xE9ments communautaires install\xE9s sont \xE0 jour.",
+  close: "Fermer",
+  updatesTitle: "{count} mise(s) \xE0 jour disponible(s)",
+  updatesBody: "Cochez ce qu\u2019il faut installer. Les fichiers viennent de chaque GitHub Release (comme l\u2019updater officiel).",
+  selectAll: "Tout s\xE9lectionner",
+  beta: " (b\xEAta)",
+  updateSelected: "Mettre \xE0 jour la s\xE9lection",
+  cancel: "Annuler",
+  noneSelected: "Rien n\u2019est s\xE9lectionn\xE9",
+  updating: "Mise \xE0 jour de {name}\u2026",
+  rateLimitedShort: "Limite GitHub atteinte",
+  updatedCount: "{count} \xE9l\xE9ment(s) mis \xE0 jour",
+  statusCheck: "V\xE9rifier",
+  cmdCheck: "V\xE9rifier les mises \xE0 jour",
+  alreadyChecking: "V\xE9rification d\xE9j\xE0 en cours",
+  statusChecking: "V\xE9rification\u2026",
+  checkingNotice: "Recherche de mises \xE0 jour\u2026",
+  rateLimitedLong: "Limite GitHub atteinte. Ajoutez un jeton dans les r\xE9glages, ou r\xE9essayez plus tard.",
+  statusUpToDate: "\xC0 jour",
+  statusError: "Erreur",
+  checkFailed: "\xC9chec de la v\xE9rification : {error}",
+  checkOnStartup: "V\xE9rifier au d\xE9marrage",
+  checkOnStartupDesc: "Si d\xE9sactiv\xE9, GitHub n\u2019est contact\xE9 que via le bouton ou la commande.",
+  ignoreDisabled: "Ignorer les \xE9l\xE9ments d\xE9sactiv\xE9s",
+  ignoreDisabledDesc: "Avec Lazy Loader, seuls ceux marqu\xE9s Disabled sont omis. Les chargements diff\xE9r\xE9s restent inclus.",
+  hideBeta: "Masquer les versions b\xEAta",
+  daysWait: "Jours d\u2019attente apr\xE8s publication",
+  daysWaitDesc: "0 affiche une version d\xE8s que cette v\xE9rification la trouve.",
+  lazyHandling: "Chargement diff\xE9r\xE9",
+  lazyHandlingDesc: "\xC9vite de traiter comme d\xE9sactiv\xE9s les \xE9l\xE9ments pas encore charg\xE9s par Lazy Loader.",
+  lazyReadConfig: "Lire les r\xE9glages Lazy Loader (recommand\xE9)",
+  lazyWaitLoaded: "Attendre la fin du chargement",
+  lazyFixedDelay: "Attendre un nombre fixe de secondes",
+  lazyNone: "Ne pas attendre",
+  waitSeconds: "Secondes d\u2019attente",
+  waitTimeout: "D\xE9lai max (secondes)",
+  githubToken: "Jeton GitHub (facultatif)",
+  githubTokenDesc: "Sans authentification, environ 60 requ\xEAtes par heure. Un PAT reste local et n\u2019est pas envoy\xE9 \xE0 un serveur K-Tech.",
+  supportOptional: "Le soutien est facultatif.",
+  selfUpdatedReload: "K-Tech Update Guard a \xE9t\xE9 mis \xE0 jour. Rechargement\u2026",
+  missingReleaseFiles: "La release n\u2019a pas main.js ou manifest.json"
+};
+var pt = {
+  thanksInstall: "Obrigado por instalar!",
+  updatedTo: "Atualizado para {version}",
+  thanksInstallBody: "Verifique as atualiza\xE7\xF5es da comunidade e instale s\xF3 o que selecionar. Se ajudar, considere apoiar o desenvolvimento (opcional).",
+  thanksUpdateBody: "Obrigado por atualizar. Se ajudar, considere apoiar o desenvolvimento (opcional).",
+  bmc: "Buy Me a Coffee",
+  later: "Depois",
+  noUpdatesTitle: "N\xE3o h\xE1 atualiza\xE7\xF5es agora",
+  noUpdatesBody: "Nesta verifica\xE7\xE3o, os itens da comunidade instalados est\xE3o atualizados.",
+  close: "Fechar",
+  updatesTitle: "{count} atualiza\xE7\xE3o(\xF5es) dispon\xEDvel(is)",
+  updatesBody: "Marque o que deseja instalar. Os arquivos v\xEAm de cada GitHub Release (como o atualizador oficial).",
+  selectAll: "Selecionar tudo",
+  beta: " (beta)",
+  updateSelected: "Atualizar selecionados",
+  cancel: "Cancelar",
+  noneSelected: "Nada selecionado",
+  updating: "Atualizando {name}\u2026",
+  rateLimitedShort: "Limite do GitHub atingido",
+  updatedCount: "{count} item(ns) atualizado(s)",
+  statusCheck: "Verificar",
+  cmdCheck: "Verificar atualiza\xE7\xF5es",
+  alreadyChecking: "J\xE1 est\xE1 verificando",
+  statusChecking: "Verificando\u2026",
+  checkingNotice: "Procurando atualiza\xE7\xF5es\u2026",
+  rateLimitedLong: "Limite do GitHub atingido. Adicione um token nas configura\xE7\xF5es ou tente mais tarde.",
+  statusUpToDate: "Atualizado",
+  statusError: "Erro",
+  checkFailed: "Falha na verifica\xE7\xE3o: {error}",
+  checkOnStartup: "Verificar ao iniciar",
+  checkOnStartupDesc: "Se estiver desligado, o GitHub s\xF3 \xE9 consultado pelo bot\xE3o ou comando.",
+  ignoreDisabled: "Ignorar desativados",
+  ignoreDisabledDesc: "Com o Lazy Loader, s\xF3 os marcados como Disabled s\xE3o omitidos. Os de carga atrasada entram na lista.",
+  hideBeta: "Ocultar vers\xF5es beta",
+  daysWait: "Dias de espera ap\xF3s o lan\xE7amento",
+  daysWaitDesc: "0 mostra uma vers\xE3o assim que esta verifica\xE7\xE3o a encontra.",
+  lazyHandling: "Carga atrasada",
+  lazyHandlingDesc: "Evita tratar como desativados os itens ainda n\xE3o carregados pelo Lazy Loader.",
+  lazyReadConfig: "Ler configura\xE7\xF5es do Lazy Loader (recomendado)",
+  lazyWaitLoaded: "Esperar at\xE9 carregar",
+  lazyFixedDelay: "Esperar um n\xFAmero fixo de segundos",
+  lazyNone: "N\xE3o esperar",
+  waitSeconds: "Segundos de espera",
+  waitTimeout: "Tempo m\xE1ximo (segundos)",
+  githubToken: "Token do GitHub (opcional)",
+  githubTokenDesc: "Sem autentica\xE7\xE3o, cerca de 60 pedidos por hora. O PAT fica s\xF3 no dispositivo e n\xE3o vai para um servidor K-Tech.",
+  supportOptional: "O apoio \xE9 opcional.",
+  selfUpdatedReload: "O K-Tech Update Guard foi atualizado. Recarregando\u2026",
+  missingReleaseFiles: "A release n\xE3o tem main.js ou manifest.json"
+};
+var ru = {
+  thanksInstall: "\u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0443!",
+  updatedTo: "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u043E \u0434\u043E {version}",
+  thanksInstallBody: "\u041F\u0440\u043E\u0432\u0435\u0440\u044F\u0439\u0442\u0435 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F \u0441\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u0430 \u0438 \u0443\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0439\u0442\u0435 \u0442\u043E\u043B\u044C\u043A\u043E \u0432\u044B\u0431\u0440\u0430\u043D\u043D\u043E\u0435. \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430 \u0440\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u043A\u0438 \u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u0430.",
+  thanksUpdateBody: "\u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435. \u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430 \u0440\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u043A\u0438 \u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u0430.",
+  bmc: "Buy Me a Coffee",
+  later: "\u041F\u043E\u0437\u0436\u0435",
+  noUpdatesTitle: "\u0421\u0435\u0439\u0447\u0430\u0441 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0439 \u043D\u0435\u0442",
+  noUpdatesBody: "\u041F\u043E \u044D\u0442\u043E\u0439 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0435 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044B\u0435 \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u044B \u0441\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u0430 \u0430\u043A\u0442\u0443\u0430\u043B\u044C\u043D\u044B.",
+  close: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C",
+  updatesTitle: "\u0414\u043E\u0441\u0442\u0443\u043F\u043D\u043E \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0439: {count}",
+  updatesBody: "\u041E\u0442\u043C\u0435\u0442\u044C\u0442\u0435, \u0447\u0442\u043E \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C. \u0424\u0430\u0439\u043B\u044B \u0431\u0435\u0440\u0443\u0442\u0441\u044F \u0438\u0437 GitHub Release (\u043A\u0430\u043A \u0443 \u043E\u0444\u0438\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0433\u043E \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F).",
+  selectAll: "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0432\u0441\u0435",
+  beta: " (\u0431\u0435\u0442\u0430)",
+  updateSelected: "\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u0432\u044B\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
+  cancel: "\u041E\u0442\u043C\u0435\u043D\u0430",
+  noneSelected: "\u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u0432\u044B\u0431\u0440\u0430\u043D\u043E",
+  updating: "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 {name}\u2026",
+  rateLimitedShort: "\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0443\u0442 \u043B\u0438\u043C\u0438\u0442 GitHub",
+  updatedCount: "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {count}",
+  statusCheck: "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430",
+  cmdCheck: "\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F",
+  alreadyChecking: "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u0443\u0436\u0435 \u0438\u0434\u0451\u0442",
+  statusChecking: "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430\u2026",
+  checkingNotice: "\u0418\u0434\u0451\u0442 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0439\u2026",
+  rateLimitedLong: "\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0443\u0442 \u043B\u0438\u043C\u0438\u0442 GitHub. \u0414\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u0442\u043E\u043A\u0435\u043D \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445 \u0438\u043B\u0438 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u0437\u0436\u0435.",
+  statusUpToDate: "\u0410\u043A\u0442\u0443\u0430\u043B\u044C\u043D\u043E",
+  statusError: "\u041E\u0448\u0438\u0431\u043A\u0430",
+  checkFailed: "\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438: {error}",
+  checkOnStartup: "\u041F\u0440\u043E\u0432\u0435\u0440\u044F\u0442\u044C \u043F\u0440\u0438 \u0437\u0430\u043F\u0443\u0441\u043A\u0435",
+  checkOnStartupDesc: "\u0415\u0441\u043B\u0438 \u0432\u044B\u043A\u043B\u044E\u0447\u0435\u043D\u043E, GitHub \u0437\u0430\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u0435\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u043A\u043D\u043E\u043F\u043A\u043E\u0439 \u0438\u043B\u0438 \u043A\u043E\u043C\u0430\u043D\u0434\u043E\u0439.",
+  ignoreDisabled: "\u041F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u0442\u044C \u043E\u0442\u043A\u043B\u044E\u0447\u0451\u043D\u043D\u044B\u0435",
+  ignoreDisabledDesc: "\u0421 Lazy Loader \u043F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u044E\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u043C\u0435\u0447\u0435\u043D\u043D\u044B\u0435 Disabled. \u041E\u0442\u043B\u043E\u0436\u0435\u043D\u043D\u0430\u044F \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u043E\u0441\u0442\u0430\u0451\u0442\u0441\u044F \u0432 \u0441\u043F\u0438\u0441\u043A\u0435.",
+  hideBeta: "\u0421\u043A\u0440\u044B\u0432\u0430\u0442\u044C \u0431\u0435\u0442\u0430-\u0432\u0435\u0440\u0441\u0438\u0438",
+  daysWait: "\u0414\u043D\u0435\u0439 \u043E\u0436\u0438\u0434\u0430\u043D\u0438\u044F \u043F\u043E\u0441\u043B\u0435 \u0432\u044B\u043F\u0443\u0441\u043A\u0430",
+  daysWaitDesc: "0 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442 \u0432\u044B\u043F\u0443\u0441\u043A \u0441\u0440\u0430\u0437\u0443, \u043A\u0430\u043A \u0442\u043E\u043B\u044C\u043A\u043E \u044D\u0442\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u0435\u0433\u043E \u043D\u0430\u0439\u0434\u0451\u0442.",
+  lazyHandling: "\u041E\u0442\u043B\u043E\u0436\u0435\u043D\u043D\u0430\u044F \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0430",
+  lazyHandlingDesc: "\u041D\u0435 \u0441\u0447\u0438\u0442\u0430\u0442\u044C \u043E\u0442\u043A\u043B\u044E\u0447\u0451\u043D\u043D\u044B\u043C\u0438 \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u044B, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 Lazy Loader \u0435\u0449\u0451 \u043D\u0435 \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u043B.",
+  lazyReadConfig: "\u0427\u0438\u0442\u0430\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 Lazy Loader (\u0440\u0435\u043A\u043E\u043C\u0435\u043D\u0434\u0443\u0435\u0442\u0441\u044F)",
+  lazyWaitLoaded: "\u0416\u0434\u0430\u0442\u044C \u043E\u043A\u043E\u043D\u0447\u0430\u043D\u0438\u044F \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438",
+  lazyFixedDelay: "\u0416\u0434\u0430\u0442\u044C \u0444\u0438\u043A\u0441\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0435 \u0447\u0438\u0441\u043B\u043E \u0441\u0435\u043A\u0443\u043D\u0434",
+  lazyNone: "\u041D\u0435 \u0436\u0434\u0430\u0442\u044C",
+  waitSeconds: "\u0421\u0435\u043A\u0443\u043D\u0434 \u043E\u0436\u0438\u0434\u0430\u043D\u0438\u044F",
+  waitTimeout: "\u041B\u0438\u043C\u0438\u0442 \u043E\u0436\u0438\u0434\u0430\u043D\u0438\u044F (\u0441\u0435\u043A\u0443\u043D\u0434\u044B)",
+  githubToken: "\u0422\u043E\u043A\u0435\u043D GitHub (\u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E)",
+  githubTokenDesc: "\u0411\u0435\u0437 \u0432\u0445\u043E\u0434\u0430 \u043E\u043A\u043E\u043B\u043E 60 \u0437\u0430\u043F\u0440\u043E\u0441\u043E\u0432 \u0432 \u0447\u0430\u0441. PAT \u0445\u0440\u0430\u043D\u0438\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u043E \u0438 \u043D\u0435 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442\u0441\u044F \u043D\u0430 \u0441\u0435\u0440\u0432\u0435\u0440 K-Tech.",
+  supportOptional: "\u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430 \u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u0430.",
+  selfUpdatedReload: "K-Tech Update Guard \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D. \u041F\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
+  missingReleaseFiles: "\u0412 \u0440\u0435\u043B\u0438\u0437\u0435 \u043D\u0435\u0442 main.js \u0438\u043B\u0438 manifest.json"
+};
+var TABLES = {
+  en,
+  ja,
+  "zh-cn": zhCn,
+  "zh-tw": zhTw,
+  ko,
+  es,
+  de,
+  fr,
+  pt,
+  ru
+};
+function detectLocale() {
+  let raw = "";
   try {
-    const lang = String(
+    raw = String(
       window.localStorage && window.localStorage.getItem("language") || ""
-    ).toLowerCase();
-    if (lang.startsWith("ja")) return true;
+    );
   } catch (e) {
   }
-  try {
-    return String(navigator.language || "").toLowerCase().startsWith("ja");
-  } catch (e) {
-    return false;
+  if (!raw) {
+    try {
+      raw = String(navigator.language || "");
+    } catch (e) {
+      raw = "en";
+    }
   }
+  const lang = raw.toLowerCase().replace(/_/g, "-");
+  if (lang.startsWith("zh")) {
+    if (lang.includes("tw") || lang.includes("hk") || lang.includes("hant")) {
+      return "zh-tw";
+    }
+    return "zh-cn";
+  }
+  if (lang.startsWith("ja")) return "ja";
+  if (lang.startsWith("ko")) return "ko";
+  if (lang.startsWith("es")) return "es";
+  if (lang.startsWith("de")) return "de";
+  if (lang.startsWith("fr")) return "fr";
+  if (lang.startsWith("pt")) return "pt";
+  if (lang.startsWith("ru")) return "ru";
+  return "en";
 }
-function t(ja, en) {
-  return isJapaneseLocale() ? ja : en;
+function applyVars(template, vars) {
+  if (!vars) return template;
+  let out = template;
+  for (const key of Object.keys(vars)) {
+    out = out.split("{" + key + "}").join(String(vars[key]));
+  }
+  return out;
+}
+function t(key, vars) {
+  const locale = detectLocale();
+  const table = TABLES[locale] || en;
+  return applyVars(table[key] || en[key], vars);
 }
 
 // src/version.ts
@@ -321,7 +862,7 @@ async function checkForUpdates(app, settings) {
   let rateLimited = false;
   await mapPool(candidates, CHECK_CONCURRENCY, async (plugin) => {
     if (rateLimited) return;
-    const repo = registry.get(plugin.id);
+    const repo = plugin.id === PLUGIN_ID ? OWN_REPO : registry.get(plugin.id);
     if (!repo) {
       skipped += 1;
       return;
@@ -356,12 +897,7 @@ async function checkForUpdates(app, settings) {
     } catch (err) {
       if (err instanceof RateLimitError) {
         rateLimited = true;
-        errors.push(
-          t(
-            "GitHub \u306E\u56DE\u6570\u5236\u9650\u306B\u9054\u3057\u307E\u3057\u305F\u3002\u8A2D\u5B9A\u306E\u30C8\u30FC\u30AF\u30F3\u3092\u4F7F\u3046\u304B\u3001\u6642\u9593\u3092\u304A\u3044\u3066\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
-            "GitHub rate limit reached. Wait, or add a personal token in settings."
-          )
-        );
+        errors.push(t("rateLimitedLong"));
         return;
       }
       errors.push(`${plugin.name}: ${err instanceof Error ? err.message : String(err)}`);
@@ -382,29 +918,21 @@ var FundingModal = class extends import_obsidian2.Modal {
   onOpen() {
     const { contentEl, titleEl } = this;
     titleEl.setText(PLUGIN_NAME);
-    const heading = this.kind === "install" ? t("\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059", "Thanks for installing!") : t(`v${this.version} \u306B\u66F4\u65B0\u3057\u307E\u3057\u305F`, `Updated to ${this.version}`);
+    const heading = this.kind === "install" ? t("thanksInstall") : t("updatedTo", { version: this.version });
     contentEl.createEl("h3", { text: heading });
     contentEl.createEl("p", {
-      text: this.kind === "install" ? t(
-        "\u30B3\u30DF\u30E5\u30CB\u30C6\u30A3\u30D7\u30E9\u30B0\u30A4\u30F3\u306E\u66F4\u65B0\u3092\u3001\u9078\u3093\u3067\u304B\u3089\u5165\u308C\u3089\u308C\u307E\u3059\u3002\u5F79\u306B\u7ACB\u3063\u305F\u3089\u958B\u767A\u306E\u52B1\u307F\u306B\u3057\u3066\u304F\u3060\u3055\u3044\uFF08\u4EFB\u610F\uFF09\u3002",
-        "Check community plugin updates, then install only what you select. If this helps, consider supporting development (optional)."
-      ) : t(
-        "\u65B0\u3057\u3044\u7248\u306B\u66F4\u65B0\u3055\u308C\u307E\u3057\u305F\u3002\u5F79\u306B\u7ACB\u3063\u305F\u3089\u3001\u958B\u767A\u306E\u52B1\u307F\u306B\u3057\u3066\u304F\u3060\u3055\u3044\uFF08\u4EFB\u610F\uFF09\u3002",
-        "Thanks for updating. If this plugin helps your workflow, consider supporting development (optional)."
-      )
+      text: this.kind === "install" ? t("thanksInstallBody") : t("thanksUpdateBody")
     });
     const actions = contentEl.createDiv({ cls: "modal-button-container" });
     const coffeeBtn = actions.createEl("button", {
       cls: "mod-cta",
-      text: t("\u2615 Buy Me a Coffee", "\u2615 Buy Me a Coffee")
+      text: "\u2615 " + t("bmc")
     });
     coffeeBtn.addEventListener("click", () => {
       window.open(FUNDING_URL, "_blank");
       this.close();
     });
-    const laterBtn = actions.createEl("button", {
-      text: t("\u3042\u3068\u3067", "Maybe later")
-    });
+    const laterBtn = actions.createEl("button", { text: t("later") });
     laterBtn.addEventListener("click", () => this.close());
   }
   onClose() {
@@ -425,16 +953,24 @@ function assetUrl(update, fileName) {
   if (fileName === "styles.css") return null;
   return `https://github.com/${update.repo}/releases/download/${update.tagName}/${fileName}`;
 }
+function isSelfUpdate(id) {
+  return id === PLUGIN_ID;
+}
+function reloadObsidian(app) {
+  const commands = app.commands;
+  if (commands && commands.executeCommandById("app:reload")) return;
+  window.location.reload();
+}
 async function installUpdate(app, update, token) {
   const mainUrl = assetUrl(update, "main.js");
   const manifestUrl = assetUrl(update, "manifest.json");
   if (!mainUrl || !manifestUrl) {
-    throw new Error("Release is missing main.js or manifest.json");
+    throw new Error(t("missingReleaseFiles"));
   }
   const mainJs = await fetchText(mainUrl, token);
   const manifest = await fetchText(manifestUrl, token);
   if (!mainJs || !manifest) {
-    throw new Error("Release is missing main.js or manifest.json");
+    throw new Error(t("missingReleaseFiles"));
   }
   let styles = null;
   const stylesUrl = assetUrl(update, "styles.css");
@@ -446,9 +982,10 @@ async function installUpdate(app, update, token) {
       styles = null;
     }
   }
+  const self = isSelfUpdate(update.id);
   const api = getPluginsApi(app);
   const wasEnabled = api.enabledPlugins.has(update.id);
-  if (wasEnabled) {
+  if (!self && wasEnabled) {
     await api.disablePlugin(update.id);
   }
   const dir = `${app.vault.configDir}/plugins/${update.id}`;
@@ -460,6 +997,7 @@ async function installUpdate(app, update, token) {
   if (styles != null && styles.length) {
     await app.vault.adapter.write(`${dir}/styles.css`, styles);
   }
+  if (self) return;
   if (typeof api.loadManifests === "function") {
     await api.loadManifests();
   }
@@ -477,15 +1015,8 @@ var NoUpdatesModal = class extends import_obsidian3.Modal {
   onOpen() {
     const { contentEl, titleEl } = this;
     titleEl.setText(PLUGIN_NAME);
-    contentEl.createEl("h3", {
-      text: t("\u4ECA\u306E\u3068\u3053\u308D\u66F4\u65B0\u306F\u3042\u308A\u307E\u305B\u3093", "No updates right now")
-    });
-    contentEl.createEl("p", {
-      text: t(
-        "\u5C0E\u5165\u3057\u3066\u3044\u308B\u30B3\u30DF\u30E5\u30CB\u30C6\u30A3\u30D7\u30E9\u30B0\u30A4\u30F3\u306F\u3001\u78BA\u8A8D\u3057\u305F\u7BC4\u56F2\u3067\u306F\u6700\u65B0\u3067\u3059\u3002",
-        "Installed community plugins are up to date for this check."
-      )
-    });
+    contentEl.createEl("h3", { text: t("noUpdatesTitle") });
+    contentEl.createEl("p", { text: t("noUpdatesBody") });
     if (this.extra.length) {
       const list = contentEl.createEl("ul", { cls: "ktech-guard-notes" });
       for (const line of this.extra) {
@@ -495,7 +1026,7 @@ var NoUpdatesModal = class extends import_obsidian3.Modal {
     const actions = contentEl.createDiv({ cls: "modal-button-container" });
     const closeBtn = actions.createEl("button", {
       cls: "mod-cta",
-      text: t("\u9589\u3058\u308B", "Close")
+      text: t("close")
     });
     closeBtn.addEventListener("click", () => this.close());
   }
@@ -527,24 +1058,16 @@ var UpdatesModal = class extends import_obsidian3.Modal {
     contentEl.empty();
     titleEl.setText(PLUGIN_NAME);
     contentEl.createEl("h3", {
-      text: t(
-        `${this.updates.length} \u4EF6\u306E\u66F4\u65B0\u304C\u3042\u308A\u307E\u3059`,
-        `${this.updates.length} update(s) available`
-      )
+      text: t("updatesTitle", { count: this.updates.length })
     });
-    contentEl.createEl("p", {
-      text: t(
-        "\u5165\u308C\u308B\u30D7\u30E9\u30B0\u30A4\u30F3\u306B\u30C1\u30A7\u30C3\u30AF\u3092\u4ED8\u3051\u3066\u304B\u3089\u66F4\u65B0\u3057\u3066\u304F\u3060\u3055\u3044\u3002GitHub Release \u306E\u914D\u5E03\u30D5\u30A1\u30A4\u30EB\u3092\u4F7F\u3044\u307E\u3059\u3002",
-        "Select the plugins to install. Files come from each GitHub Release (same as the official updater)."
-      )
-    });
+    contentEl.createEl("p", { text: t("updatesBody") });
     if (this.extra.length) {
       const notes = contentEl.createEl("ul", { cls: "ktech-guard-notes" });
       for (const line of this.extra) {
         notes.createEl("li", { text: line });
       }
     }
-    new import_obsidian3.Setting(contentEl).setName(t("\u3059\u3079\u3066\u9078\u629E", "Select all")).addToggle((toggle) => {
+    new import_obsidian3.Setting(contentEl).setName(t("selectAll")).addToggle((toggle) => {
       toggle.setValue(this.selected.size === this.updates.length);
       toggle.onChange((on) => {
         this.selected.clear();
@@ -557,7 +1080,7 @@ var UpdatesModal = class extends import_obsidian3.Modal {
     for (const update of this.updates) {
       const row = new import_obsidian3.Setting(contentEl);
       row.setName(update.name);
-      const beta = update.isBeta ? t("\uFF08\u30D9\u30FC\u30BF\uFF09", " (beta)") : "";
+      const beta = update.isBeta ? t("beta") : "";
       row.setDesc(
         `${update.currentVersion} \u2192 ${update.latestVersion}${beta}` + (update.notes ? `
 ${update.notes.trim().slice(0, 280)}${update.notes.length > 280 ? "\u2026" : ""}` : "")
@@ -573,38 +1096,41 @@ ${update.notes.trim().slice(0, 280)}${update.notes.length > 280 ? "\u2026" : ""}
     const actions = contentEl.createDiv({ cls: "modal-button-container" });
     const updateBtn = actions.createEl("button", {
       cls: "mod-cta",
-      text: t("\u9078\u629E\u3057\u305F\u30D7\u30E9\u30B0\u30A4\u30F3\u3092\u66F4\u65B0", "Update selected")
+      text: t("updateSelected")
     });
     updateBtn.disabled = this.busy;
     updateBtn.addEventListener("click", () => {
       void this.applySelected();
     });
-    const cancelBtn = actions.createEl("button", {
-      text: t("\u30AD\u30E3\u30F3\u30BB\u30EB", "Cancel")
-    });
+    const cancelBtn = actions.createEl("button", { text: t("cancel") });
     cancelBtn.addEventListener("click", () => this.close());
   }
   async applySelected() {
     if (this.busy) return;
     const chosen = this.updates.filter((u) => this.selected.has(u.id));
     if (!chosen.length) {
-      new import_obsidian3.Notice(t("\u30D7\u30E9\u30B0\u30A4\u30F3\u304C\u9078\u629E\u3055\u308C\u3066\u3044\u307E\u305B\u3093", "No plugins selected"));
+      new import_obsidian3.Notice(t("noneSelected"));
       return;
     }
+    chosen.sort((a, b) => {
+      const aSelf = a.id === PLUGIN_ID ? 1 : 0;
+      const bSelf = b.id === PLUGIN_ID ? 1 : 0;
+      return aSelf - bSelf;
+    });
     this.busy = true;
     this.render();
     let ok = 0;
+    let selfUpdated = false;
     const failed = [];
     for (const update of chosen) {
       try {
-        new import_obsidian3.Notice(
-          t(`${update.name} \u3092\u66F4\u65B0\u3057\u3066\u3044\u307E\u3059\u2026`, `Updating ${update.name}\u2026`)
-        );
+        new import_obsidian3.Notice(t("updating", { name: update.name }));
         await installUpdate(this.app, update, this.token);
         ok += 1;
+        if (isSelfUpdate(update.id)) selfUpdated = true;
       } catch (err) {
         if (err instanceof RateLimitError) {
-          failed.push(t("GitHub \u306E\u56DE\u6570\u5236\u9650\u306B\u9054\u3057\u307E\u3057\u305F", "GitHub rate limit reached"));
+          failed.push(t("rateLimitedShort"));
           break;
         }
         failed.push(
@@ -615,14 +1141,16 @@ ${update.notes.trim().slice(0, 280)}${update.notes.length > 280 ? "\u2026" : ""}
     this.busy = false;
     this.close();
     if (ok) {
-      new import_obsidian3.Notice(
-        t(`${ok} \u4EF6\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F`, `Updated ${ok} plugin(s)`)
-      );
+      new import_obsidian3.Notice(t("updatedCount", { count: ok }));
     }
     if (failed.length) {
       new import_obsidian3.Notice(failed.join("\n"), 8e3);
     }
     this.onDone();
+    if (selfUpdated) {
+      new import_obsidian3.Notice(t("selfUpdatedReload"));
+      window.setTimeout(() => reloadObsidian(this.app), 700);
+    }
   }
 };
 
@@ -636,46 +1164,29 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", {
-      text: t("K-Tech Plugin Guard", "K-Tech Plugin Guard")
-    });
-    new import_obsidian4.Setting(containerEl).setName(t("\u8D77\u52D5\u6642\u306B\u78BA\u8A8D\u3059\u308B", "Check on startup")).setDesc(
-      t(
-        "\u30AA\u30D5\u306E\u3068\u304D\u306F\u3001\u30DC\u30BF\u30F3\u307E\u305F\u306F\u30B3\u30DE\u30F3\u30C9\u3067\u306E\u307F GitHub \u3092\u898B\u306B\u884C\u304D\u307E\u3059\u3002",
-        "When off, GitHub is contacted only from the button or command."
-      )
-    ).addToggle((toggle) => {
+    containerEl.createEl("h2", { text: PLUGIN_NAME });
+    new import_obsidian4.Setting(containerEl).setName(t("checkOnStartup")).setDesc(t("checkOnStartupDesc")).addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.checkOnStartup);
       toggle.onChange(async (value) => {
         this.plugin.settings.checkOnStartup = value;
         await this.plugin.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("\u7121\u52B9\u30D7\u30E9\u30B0\u30A4\u30F3\u306F\u5BFE\u8C61\u5916", "Ignore disabled plugins")).setDesc(
-      t(
-        "Lazy Loader \u304C\u3042\u308B\u3068\u304D\u306F\u3001\u305D\u3061\u3089\u306E\u300C\u7121\u52B9\u300D\u3060\u3051\u3092\u7121\u52B9\u3068\u307F\u306A\u3057\u307E\u3059\uFF08\u9045\u5EF6\u8AAD\u307F\u8FBC\u307F\u306F\u5BFE\u8C61\u306B\u6B8B\u3057\u307E\u3059\uFF09\u3002",
-        "With Lazy Loader, only plugins it marks Disabled are skipped. Delayed plugins stay included."
-      )
-    ).addToggle((toggle) => {
+    new import_obsidian4.Setting(containerEl).setName(t("ignoreDisabled")).setDesc(t("ignoreDisabledDesc")).addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.ignoreDisabled);
       toggle.onChange(async (value) => {
         this.plugin.settings.ignoreDisabled = value;
         await this.plugin.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("\u30D9\u30FC\u30BF\u7248\u3092\u51FA\u3055\u306A\u3044", "Hide beta versions")).addToggle((toggle) => {
+    new import_obsidian4.Setting(containerEl).setName(t("hideBeta")).addToggle((toggle) => {
       toggle.setValue(this.plugin.settings.ignoreBeta);
       toggle.onChange(async (value) => {
         this.plugin.settings.ignoreBeta = value;
         await this.plugin.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("\u516C\u958B\u304B\u3089\u4F55\u65E5\u5F85\u3064\u304B", "Days to wait after a release")).setDesc(
-      t(
-        "0 \u306A\u3089\u3001\u78BA\u8A8D\u3057\u305F\u6642\u70B9\u306E\u6700\u65B0\u3092\u51FA\u3057\u307E\u3059\u3002",
-        "0 shows a release as soon as this check finds it."
-      )
-    ).addSlider((slider) => {
+    new import_obsidian4.Setting(containerEl).setName(t("daysWait")).setDesc(t("daysWaitDesc")).addSlider((slider) => {
       slider.setLimits(0, 14, 1);
       slider.setDynamicTooltip();
       slider.setValue(this.plugin.settings.daysUntilShow);
@@ -684,25 +1195,11 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
         await this.plugin.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("\u9045\u5EF6\u8AAD\u307F\u8FBC\u307F\u306E\u6271\u3044", "Delayed plugin handling")).setDesc(
-      t(
-        "Lazy Loader \u5229\u7528\u6642\u306B\u3001\u307E\u3060\u8AAD\u307F\u8FBC\u307E\u308C\u3066\u3044\u306A\u3044\u30D7\u30E9\u30B0\u30A4\u30F3\u3092\u7121\u52B9\u3068\u8AA4\u3089\u306A\u3044\u305F\u3081\u306E\u65B9\u6CD5\u3067\u3059\u3002",
-        "Avoid treating Lazy Loader delayed plugins as disabled."
-      )
-    ).addDropdown((dropdown) => {
-      dropdown.addOption(
-        "lazy-config",
-        t("Lazy Loader \u306E\u8A2D\u5B9A\u3092\u8AAD\u3080\uFF08\u63A8\u5968\uFF09", "Read Lazy Loader settings (recommended)")
-      );
-      dropdown.addOption(
-        "wait-loaded",
-        t("\u8AAD\u307F\u8FBC\u307F\u5B8C\u4E86\u307E\u3067\u5F85\u3064", "Wait until delayed plugins load")
-      );
-      dropdown.addOption(
-        "fixed-delay",
-        t("\u56FA\u5B9A\u79D2\u6570\u5F85\u3064", "Wait a fixed number of seconds")
-      );
-      dropdown.addOption("none", t("\u5F85\u305F\u306A\u3044", "Do not wait"));
+    new import_obsidian4.Setting(containerEl).setName(t("lazyHandling")).setDesc(t("lazyHandlingDesc")).addDropdown((dropdown) => {
+      dropdown.addOption("lazy-config", t("lazyReadConfig"));
+      dropdown.addOption("wait-loaded", t("lazyWaitLoaded"));
+      dropdown.addOption("fixed-delay", t("lazyFixedDelay"));
+      dropdown.addOption("none", t("lazyNone"));
       dropdown.setValue(this.plugin.settings.lazyStrategy);
       dropdown.onChange(async (value) => {
         this.plugin.settings.lazyStrategy = value;
@@ -711,7 +1208,7 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
       });
     });
     if (this.plugin.settings.lazyStrategy === "fixed-delay") {
-      new import_obsidian4.Setting(containerEl).setName(t("\u5F85\u6A5F\u79D2\u6570", "Wait seconds")).addSlider((slider) => {
+      new import_obsidian4.Setting(containerEl).setName(t("waitSeconds")).addSlider((slider) => {
         slider.setLimits(1, 30, 1);
         slider.setDynamicTooltip();
         slider.setValue(this.plugin.settings.fixedDelaySeconds);
@@ -722,7 +1219,7 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
       });
     }
     if (this.plugin.settings.lazyStrategy === "wait-loaded") {
-      new import_obsidian4.Setting(containerEl).setName(t("\u5F85\u3061\u6642\u9593\u306E\u4E0A\u9650\uFF08\u79D2\uFF09", "Wait timeout (seconds)")).addSlider((slider) => {
+      new import_obsidian4.Setting(containerEl).setName(t("waitTimeout")).addSlider((slider) => {
         slider.setLimits(5, 60, 1);
         slider.setDynamicTooltip();
         slider.setValue(this.plugin.settings.waitLoadedTimeoutSeconds);
@@ -732,12 +1229,7 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
         });
       });
     }
-    new import_obsidian4.Setting(containerEl).setName(t("GitHub \u30C8\u30FC\u30AF\u30F3\uFF08\u4EFB\u610F\uFF09", "GitHub token (optional)")).setDesc(
-      t(
-        "\u672A\u8A8D\u8A3C\u306F1\u6642\u9593\u3042\u305F\u308A\u7D0460\u56DE\u3067\u3059\u3002\u591A\u3044\u3068\u304D\u306F Fine-grained \u307E\u305F\u306F classic \u306E PAT \u3092\u30ED\u30FC\u30AB\u30EB\u306B\u3060\u3051\u4FDD\u5B58\u3057\u307E\u3059\u3002\u4F5C\u8005\u30B5\u30FC\u30D0\u30FC\u306B\u306F\u9001\u308A\u307E\u305B\u3093\u3002",
-        "Unauthenticated checks are about 60 GitHub requests per hour. A PAT is stored locally only and is never sent to a K-Tech server."
-      )
-    ).addText((text) => {
+    new import_obsidian4.Setting(containerEl).setName(t("githubToken")).setDesc(t("githubTokenDesc")).addText((text) => {
       text.inputEl.type = "password";
       text.setPlaceholder("ghp_\u2026");
       text.setValue(this.plugin.settings.githubToken);
@@ -746,13 +1238,8 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
         await this.plugin.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName("Buy Me a Coffee").setDesc(
-      t(
-        "\u958B\u767A\u652F\u63F4\u306F\u4EFB\u610F\u3067\u3059\u3002",
-        "Support is optional."
-      )
-    ).addButton((button) => {
-      button.setButtonText("Buy Me a Coffee");
+    new import_obsidian4.Setting(containerEl).setName(t("bmc")).setDesc(t("supportOptional")).addButton((button) => {
+      button.setButtonText(t("bmc"));
       button.setCta();
       button.onClick(() => {
         window.open(FUNDING_URL, "_blank");
@@ -793,7 +1280,7 @@ function toStorage(settings, lastSeenVersion) {
 }
 
 // src/main.ts
-var KTechPluginGuard = class extends import_obsidian5.Plugin {
+var KTechUpdateGuard = class extends import_obsidian5.Plugin {
   constructor() {
     super(...arguments);
     this.settings = DEFAULT_SETTINGS;
@@ -804,7 +1291,7 @@ var KTechPluginGuard = class extends import_obsidian5.Plugin {
     await this.loadSettings();
     this.statusEl = this.addStatusBarItem();
     this.statusEl.addClass("ktech-guard-status");
-    this.setStatus(t("\u78BA\u8A8D", "Check"));
+    this.setStatus(t("statusCheck"));
     this.statusEl.addEventListener("click", () => {
       void this.runCheck();
     });
@@ -813,7 +1300,7 @@ var KTechPluginGuard = class extends import_obsidian5.Plugin {
     });
     this.addCommand({
       id: "check-plugin-updates",
-      name: t("\u30D7\u30E9\u30B0\u30A4\u30F3\u306E\u66F4\u65B0\u3092\u78BA\u8A8D", "Check for plugin updates"),
+      name: t("cmdCheck"),
       callback: () => {
         void this.runCheck();
       }
@@ -854,26 +1341,19 @@ var KTechPluginGuard = class extends import_obsidian5.Plugin {
   }
   async runCheck() {
     if (this.checking) {
-      new import_obsidian5.Notice(t("\u3059\u3067\u306B\u78BA\u8A8D\u4E2D\u3067\u3059", "Already checking"));
+      new import_obsidian5.Notice(t("alreadyChecking"));
       return;
     }
     this.checking = true;
-    this.setStatus(t("\u78BA\u8A8D\u4E2D\u2026", "Checking\u2026"));
-    new import_obsidian5.Notice(t("\u30D7\u30E9\u30B0\u30A4\u30F3\u306E\u66F4\u65B0\u3092\u78BA\u8A8D\u3057\u3066\u3044\u307E\u3059\u2026", "Checking plugin updates\u2026"));
+    this.setStatus(t("statusChecking"));
+    new import_obsidian5.Notice(t("checkingNotice"));
     try {
       const result = await checkForUpdates(this.app, this.settings);
       const extra = [];
-      if (result.rateLimited) {
-        extra.push(
-          t(
-            "GitHub \u306E\u56DE\u6570\u5236\u9650\u306B\u9054\u3057\u307E\u3057\u305F\u3002\u8A2D\u5B9A\u306E\u30C8\u30FC\u30AF\u30F3\u3092\u4F7F\u3046\u304B\u3001\u6642\u9593\u3092\u304A\u3044\u3066\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
-            "GitHub rate limit reached. Add a token in settings, or try again later."
-          )
-        );
-      }
+      if (result.rateLimited) extra.push(t("rateLimitedLong"));
       for (const err of result.errors) extra.push(err);
       if (!result.updates.length) {
-        this.setStatus(t("\u6700\u65B0", "Up to date"));
+        this.setStatus(t("statusUpToDate"));
         new NoUpdatesModal(this.app, extra).open();
         return;
       }
@@ -884,16 +1364,15 @@ var KTechPluginGuard = class extends import_obsidian5.Plugin {
         this.settings.githubToken,
         extra,
         () => {
-          this.setStatus(t("\u78BA\u8A8D", "Check"));
+          this.setStatus(t("statusCheck"));
         }
       ).open();
     } catch (err) {
-      this.setStatus(t("\u30A8\u30E9\u30FC", "Error"));
+      this.setStatus(t("statusError"));
       new import_obsidian5.Notice(
-        t(
-          `\u78BA\u8A8D\u306B\u5931\u6557\u3057\u307E\u3057\u305F: ${err instanceof Error ? err.message : String(err)}`,
-          `Check failed: ${err instanceof Error ? err.message : String(err)}`
-        ),
+        t("checkFailed", {
+          error: err instanceof Error ? err.message : String(err)
+        }),
         8e3
       );
     } finally {

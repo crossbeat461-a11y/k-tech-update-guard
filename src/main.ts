@@ -12,7 +12,7 @@ import {
   type GuardSettings,
 } from "./types";
 
-export default class KTechPluginGuard extends Plugin {
+export default class KTechUpdateGuard extends Plugin {
   settings: GuardSettings = DEFAULT_SETTINGS;
   private lastSeenVersion?: string;
   private checking = false;
@@ -23,7 +23,7 @@ export default class KTechPluginGuard extends Plugin {
 
     this.statusEl = this.addStatusBarItem();
     this.statusEl.addClass("ktech-guard-status");
-    this.setStatus(t("確認", "Check"));
+    this.setStatus(t("statusCheck"));
     this.statusEl.addEventListener("click", () => {
       void this.runCheck();
     });
@@ -34,7 +34,7 @@ export default class KTechPluginGuard extends Plugin {
 
     this.addCommand({
       id: "check-plugin-updates",
-      name: t("プラグインの更新を確認", "Check for plugin updates"),
+      name: t("cmdCheck"),
       callback: () => {
         void this.runCheck();
       },
@@ -83,27 +83,20 @@ export default class KTechPluginGuard extends Plugin {
 
   async runCheck(): Promise<void> {
     if (this.checking) {
-      new Notice(t("すでに確認中です", "Already checking"));
+      new Notice(t("alreadyChecking"));
       return;
     }
     this.checking = true;
-    this.setStatus(t("確認中…", "Checking…"));
-    new Notice(t("プラグインの更新を確認しています…", "Checking plugin updates…"));
+    this.setStatus(t("statusChecking"));
+    new Notice(t("checkingNotice"));
     try {
       const result = await checkForUpdates(this.app, this.settings);
       const extra: string[] = [];
-      if (result.rateLimited) {
-        extra.push(
-          t(
-            "GitHub の回数制限に達しました。設定のトークンを使うか、時間をおいて再試行してください。",
-            "GitHub rate limit reached. Add a token in settings, or try again later."
-          )
-        );
-      }
+      if (result.rateLimited) extra.push(t("rateLimitedLong"));
       for (const err of result.errors) extra.push(err);
 
       if (!result.updates.length) {
-        this.setStatus(t("最新", "Up to date"));
+        this.setStatus(t("statusUpToDate"));
         new NoUpdatesModal(this.app, extra).open();
         return;
       }
@@ -115,16 +108,15 @@ export default class KTechPluginGuard extends Plugin {
         this.settings.githubToken,
         extra,
         () => {
-          this.setStatus(t("確認", "Check"));
+          this.setStatus(t("statusCheck"));
         }
       ).open();
     } catch (err) {
-      this.setStatus(t("エラー", "Error"));
+      this.setStatus(t("statusError"));
       new Notice(
-        t(
-          `確認に失敗しました: ${err instanceof Error ? err.message : String(err)}`,
-          `Check failed: ${err instanceof Error ? err.message : String(err)}`
-        ),
+        t("checkFailed", {
+          error: err instanceof Error ? err.message : String(err),
+        }),
         8000
       );
     } finally {
