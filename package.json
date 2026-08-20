@@ -1,0 +1,16 @@
+{
+  "name": "k-tech-plugin-guard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Check community plugin updates on demand and install the ones you select.",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.24.0",
+    "obsidian": "^1.13.1",
+    "typescript": "^5.7.0"
+  }
+}

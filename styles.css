@@ -1,0 +1,14 @@
+.ktech-guard-status {
+  cursor: pointer;
+}
+
+.ktech-guard-notes {
+  margin: 0.5em 0 1em;
+  padding-left: 1.2em;
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.ktech-guard-notes li {
+  margin: 0.25em 0;
+}
