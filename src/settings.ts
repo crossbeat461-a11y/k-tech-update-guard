@@ -1,5 +1,5 @@
 import { App, Plugin, PluginSettingTab, Setting } from "obsidian";
-import { FUNDING_URL } from "./constants";
+import { FUNDING_URL, PLUGIN_NAME } from "./constants";
 import { t } from "./i18n";
 import type { GuardSettings, LazyStrategy } from "./types";
 
@@ -19,18 +19,11 @@ export class GuardSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", {
-      text: t("K-Tech Plugin Guard", "K-Tech Plugin Guard"),
-    });
+    containerEl.createEl("h2", { text: PLUGIN_NAME });
 
     new Setting(containerEl)
-      .setName(t("起動時に確認する", "Check on startup"))
-      .setDesc(
-        t(
-          "オフのときは、ボタンまたはコマンドでのみ GitHub を見に行きます。",
-          "When off, GitHub is contacted only from the button or command."
-        )
-      )
+      .setName(t("checkOnStartup"))
+      .setDesc(t("checkOnStartupDesc"))
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.settings.checkOnStartup);
         toggle.onChange(async (value) => {
@@ -40,13 +33,8 @@ export class GuardSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName(t("無効プラグインは対象外", "Ignore disabled plugins"))
-      .setDesc(
-        t(
-          "Lazy Loader があるときは、そちらの「無効」だけを無効とみなします（遅延読み込みは対象に残します）。",
-          "With Lazy Loader, only plugins it marks Disabled are skipped. Delayed plugins stay included."
-        )
-      )
+      .setName(t("ignoreDisabled"))
+      .setDesc(t("ignoreDisabledDesc"))
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.settings.ignoreDisabled);
         toggle.onChange(async (value) => {
@@ -56,7 +44,7 @@ export class GuardSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName(t("ベータ版を出さない", "Hide beta versions"))
+      .setName(t("hideBeta"))
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.settings.ignoreBeta);
         toggle.onChange(async (value) => {
@@ -66,13 +54,8 @@ export class GuardSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName(t("公開から何日待つか", "Days to wait after a release"))
-      .setDesc(
-        t(
-          "0 なら、確認した時点の最新を出します。",
-          "0 shows a release as soon as this check finds it."
-        )
-      )
+      .setName(t("daysWait"))
+      .setDesc(t("daysWaitDesc"))
       .addSlider((slider) => {
         slider.setLimits(0, 14, 1);
         slider.setDynamicTooltip();
@@ -84,27 +67,13 @@ export class GuardSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName(t("遅延読み込みの扱い", "Delayed plugin handling"))
-      .setDesc(
-        t(
-          "Lazy Loader 利用時に、まだ読み込まれていないプラグインを無効と誤らないための方法です。",
-          "Avoid treating Lazy Loader delayed plugins as disabled."
-        )
-      )
+      .setName(t("lazyHandling"))
+      .setDesc(t("lazyHandlingDesc"))
       .addDropdown((dropdown) => {
-        dropdown.addOption(
-          "lazy-config",
-          t("Lazy Loader の設定を読む（推奨）", "Read Lazy Loader settings (recommended)")
-        );
-        dropdown.addOption(
-          "wait-loaded",
-          t("読み込み完了まで待つ", "Wait until delayed plugins load")
-        );
-        dropdown.addOption(
-          "fixed-delay",
-          t("固定秒数待つ", "Wait a fixed number of seconds")
-        );
-        dropdown.addOption("none", t("待たない", "Do not wait"));
+        dropdown.addOption("lazy-config", t("lazyReadConfig"));
+        dropdown.addOption("wait-loaded", t("lazyWaitLoaded"));
+        dropdown.addOption("fixed-delay", t("lazyFixedDelay"));
+        dropdown.addOption("none", t("lazyNone"));
         dropdown.setValue(this.plugin.settings.lazyStrategy);
         dropdown.onChange(async (value) => {
           this.plugin.settings.lazyStrategy = value as LazyStrategy;
@@ -115,7 +84,7 @@ export class GuardSettingTab extends PluginSettingTab {
 
     if (this.plugin.settings.lazyStrategy === "fixed-delay") {
       new Setting(containerEl)
-        .setName(t("待機秒数", "Wait seconds"))
+        .setName(t("waitSeconds"))
         .addSlider((slider) => {
           slider.setLimits(1, 30, 1);
           slider.setDynamicTooltip();
@@ -129,7 +98,7 @@ export class GuardSettingTab extends PluginSettingTab {
 
     if (this.plugin.settings.lazyStrategy === "wait-loaded") {
       new Setting(containerEl)
-        .setName(t("待ち時間の上限（秒）", "Wait timeout (seconds)"))
+        .setName(t("waitTimeout"))
         .addSlider((slider) => {
           slider.setLimits(5, 60, 1);
           slider.setDynamicTooltip();
@@ -142,13 +111,8 @@ export class GuardSettingTab extends PluginSettingTab {
     }
 
     new Setting(containerEl)
-      .setName(t("GitHub トークン（任意）", "GitHub token (optional)"))
-      .setDesc(
-        t(
-          "未認証は1時間あたり約60回です。多いときは Fine-grained または classic の PAT をローカルにだけ保存します。作者サーバーには送りません。",
-          "Unauthenticated checks are about 60 GitHub requests per hour. A PAT is stored locally only and is never sent to a K-Tech server."
-        )
-      )
+      .setName(t("githubToken"))
+      .setDesc(t("githubTokenDesc"))
       .addText((text) => {
         text.inputEl.type = "password";
         text.setPlaceholder("ghp_…");
@@ -160,15 +124,10 @@ export class GuardSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("Buy Me a Coffee")
-      .setDesc(
-        t(
-          "開発支援は任意です。",
-          "Support is optional."
-        )
-      )
+      .setName(t("bmc"))
+      .setDesc(t("supportOptional"))
       .addButton((button) => {
-        button.setButtonText("Buy Me a Coffee");
+        button.setButtonText(t("bmc"));
         button.setCta();
         button.onClick(() => {
           window.open(FUNDING_URL, "_blank");

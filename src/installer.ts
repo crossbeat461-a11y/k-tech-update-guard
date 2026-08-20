@@ -1,5 +1,7 @@
 import type { App } from "obsidian";
+import { PLUGIN_ID } from "./constants";
 import { fetchText, RateLimitError } from "./github";
+import { t } from "./i18n";
 import { getPluginsApi } from "./plugins-api";
 import type { AvailableUpdate } from "./types";
 
@@ -10,6 +12,20 @@ function assetUrl(update: AvailableUpdate, fileName: string): string | null {
   return `https://github.com/${update.repo}/releases/download/${update.tagName}/${fileName}`;
 }
 
+export function isSelfUpdate(id: string): boolean {
+  return id === PLUGIN_ID;
+}
+
+export function reloadObsidian(app: App): void {
+  const commands = (
+    app as App & {
+      commands?: { executeCommandById(id: string): boolean };
+    }
+  ).commands;
+  if (commands && commands.executeCommandById("app:reload")) return;
+  window.location.reload();
+}
+
 export async function installUpdate(
   app: App,
   update: AvailableUpdate,
@@ -18,12 +34,12 @@ export async function installUpdate(
   const mainUrl = assetUrl(update, "main.js");
   const manifestUrl = assetUrl(update, "manifest.json");
   if (!mainUrl || !manifestUrl) {
-    throw new Error("Release is missing main.js or manifest.json");
+    throw new Error(t("missingReleaseFiles"));
   }
   const mainJs = await fetchText(mainUrl, token);
   const manifest = await fetchText(manifestUrl, token);
   if (!mainJs || !manifest) {
-    throw new Error("Release is missing main.js or manifest.json");
+    throw new Error(t("missingReleaseFiles"));
   }
   let styles: string | null = null;
   const stylesUrl = assetUrl(update, "styles.css");
@@ -36,9 +52,10 @@ export async function installUpdate(
     }
   }
 
+  const self = isSelfUpdate(update.id);
   const api = getPluginsApi(app);
   const wasEnabled = api.enabledPlugins.has(update.id);
-  if (wasEnabled) {
+  if (!self && wasEnabled) {
     await api.disablePlugin(update.id);
   }
 
@@ -51,6 +68,8 @@ export async function installUpdate(
   if (styles != null && styles.length) {
     await app.vault.adapter.write(`${dir}/styles.css`, styles);
   }
+
+  if (self) return;
 
   if (typeof api.loadManifests === "function") {
     await api.loadManifests();

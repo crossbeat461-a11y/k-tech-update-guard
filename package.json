@@ -1,6 +1,6 @@
 {
-  "name": "k-tech-plugin-guard",
-  "version": "0.1.0",
+  "name": "k-tech-update-guard",
+  "version": "0.1.1",
   "private": true,
   "description": "Check community plugin updates on demand and install the ones you select.",
   "scripts": {

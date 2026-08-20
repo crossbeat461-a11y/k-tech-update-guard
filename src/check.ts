@@ -1,5 +1,5 @@
 import type { App } from "obsidian";
-import { CHECK_CONCURRENCY } from "./constants";
+import { CHECK_CONCURRENCY, OWN_REPO, PLUGIN_ID } from "./constants";
 import { fetchLatestRelease, mapPool, RateLimitError } from "./github";
 import {
   applyLazyWait,
@@ -60,7 +60,7 @@ export async function checkForUpdates(
 
   await mapPool(candidates, CHECK_CONCURRENCY, async (plugin) => {
     if (rateLimited) return;
-    const repo = registry.get(plugin.id);
+    const repo = plugin.id === PLUGIN_ID ? OWN_REPO : registry.get(plugin.id);
     if (!repo) {
       skipped += 1;
       return;
@@ -98,12 +98,7 @@ export async function checkForUpdates(
     } catch (err) {
       if (err instanceof RateLimitError) {
         rateLimited = true;
-        errors.push(
-          t(
-            "GitHub の回数制限に達しました。設定のトークンを使うか、時間をおいて再試行してください。",
-            "GitHub rate limit reached. Wait, or add a personal token in settings."
-          )
-        );
+        errors.push(t("rateLimitedLong"));
         return;
       }
       errors.push(`${plugin.name}: ${err instanceof Error ? err.message : String(err)}`);

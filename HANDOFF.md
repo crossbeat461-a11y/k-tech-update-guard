@@ -1,4 +1,4 @@
-# HANDOFF — K-Tech Plugin Guard
+# HANDOFF — K-Tech Update Guard
 
 <!-- updated: 2026-08-21 -->
 
@@ -6,11 +6,11 @@
 
 | Field | Value |
 |---|---|
-| ID | `k-tech-plugin-guard` |
-| Name | K-Tech Plugin Guard |
+| ID | `k-tech-update-guard` |
+| Name | K-Tech Update Guard |
 | Author | K-Tech Studio |
-| Repo | `crossbeat461-a11y/k-tech-plugin-guard` |
-| Version | 0.1.0 |
+| Repo | `crossbeat461-a11y/k-tech-update-guard` |
+| Version | 0.1.1 |
 
 ## Privacy
 
@@ -21,7 +21,7 @@
 ## Build
 
 ```bash
-cd c:\Github\k-tech-plugin-guard
+cd c:\Github\k-tech-update-guard
 npm install
 npm run build          # writes main.js
 npm run dev            # watch mode
@@ -30,43 +30,41 @@ npm run dev            # watch mode
 Deploy to Mybox (manual copy):
 
 ```
-c:\Users\chuyo\Dropbox\アプリ\remotely-save\Mybox\.obsidian\plugins\k-tech-plugin-guard\
+c:\Users\chuyo\Dropbox\アプリ\remotely-save\Mybox\.obsidian\plugins\k-tech-update-guard\
   main.js, manifest.json, styles.css
 ```
 
-Enable in Settings → Community plugins → K-Tech Plugin Guard.
+Enable in Settings → Community plugins → K-Tech Update Guard.
 
 ## Architecture
 
 ```
 src/main.ts          Commands, ribbon, status bar, BMC, check entry
+src/i18n.ts          10 locales
 src/check.ts         Compare installed manifests vs GitHub latest
 src/github.ts        requestUrl + rate limit
 src/registry.ts      community-plugins.json → id/repo
 src/lazy.ts          Lazy Loader data.json + wait strategies
-src/installer.ts     Write release files, reload plugin
+src/installer.ts     Write release files; self-update without disable
 src/modals.ts        No-updates / select-and-update
 src/settings.ts      Options + BMC button
 src/funding.ts       Install + update BMC dialog
 src/version.ts       Semver compare
 ```
 
-## Local test (before first push)
+## Local test
 
-Do not push until the user confirms in Obsidian.
-
-Checklist:
-
+- [ ] Display name is K-Tech Update Guard (no "Plugin")
 - [ ] Install BMC dialog appears once
-- [ ] Check with no updates → 今のところ更新はありません
-- [ ] Check with updates → count, Select all, individual toggles, install selected
-- [ ] Disabled plugins skipped when setting is on
-- [ ] Lazy strategy "Read Lazy Loader settings" does not treat delayed plugins as disabled
-- [ ] Settings BMC button opens buymeacoffee.com/k_tech_studio
+- [ ] Check with no updates → dialog
+- [ ] Check with updates → count, Select all, install selected
+- [ ] Self-update does not disable the running instance; app reloads after
+- [ ] UI follows Obsidian language among the 10 locales
 
 ## Release
 
-Same as TableCSV / Heading Jump Fix: tag `0.1.0` → `.github/workflows/release.yml`.
+Tag `0.1.1` → GitHub Release with main.js / manifest.json / styles.css.
 
 Do not include "Obsidian" in `manifest.json` description.
+Do not include "Plugin" in `manifest.json` name.
 Commit and push only when the user asks.

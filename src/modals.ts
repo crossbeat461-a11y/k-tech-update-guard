@@ -1,7 +1,7 @@
 import { App, Modal, Notice, Setting } from "obsidian";
-import { PLUGIN_NAME } from "./constants";
+import { PLUGIN_ID, PLUGIN_NAME } from "./constants";
 import { t } from "./i18n";
-import { installUpdate } from "./installer";
+import { installUpdate, isSelfUpdate, reloadObsidian } from "./installer";
 import { RateLimitError } from "./github";
 import type { AvailableUpdate } from "./types";
 
@@ -16,15 +16,8 @@ export class NoUpdatesModal extends Modal {
   onOpen(): void {
     const { contentEl, titleEl } = this;
     titleEl.setText(PLUGIN_NAME);
-    contentEl.createEl("h3", {
-      text: t("今のところ更新はありません", "No updates right now"),
-    });
-    contentEl.createEl("p", {
-      text: t(
-        "導入しているコミュニティプラグインは、確認した範囲では最新です。",
-        "Installed community plugins are up to date for this check."
-      ),
-    });
+    contentEl.createEl("h3", { text: t("noUpdatesTitle") });
+    contentEl.createEl("p", { text: t("noUpdatesBody") });
     if (this.extra.length) {
       const list = contentEl.createEl("ul", { cls: "ktech-guard-notes" });
       for (const line of this.extra) {
@@ -34,7 +27,7 @@ export class NoUpdatesModal extends Modal {
     const actions = contentEl.createDiv({ cls: "modal-button-container" });
     const closeBtn = actions.createEl("button", {
       cls: "mod-cta",
-      text: t("閉じる", "Close"),
+      text: t("close"),
     });
     closeBtn.addEventListener("click", () => this.close());
   }
@@ -75,17 +68,9 @@ export class UpdatesModal extends Modal {
     titleEl.setText(PLUGIN_NAME);
 
     contentEl.createEl("h3", {
-      text: t(
-        `${this.updates.length} 件の更新があります`,
-        `${this.updates.length} update(s) available`
-      ),
+      text: t("updatesTitle", { count: this.updates.length }),
     });
-    contentEl.createEl("p", {
-      text: t(
-        "入れるプラグインにチェックを付けてから更新してください。GitHub Release の配布ファイルを使います。",
-        "Select the plugins to install. Files come from each GitHub Release (same as the official updater)."
-      ),
-    });
+    contentEl.createEl("p", { text: t("updatesBody") });
 
     if (this.extra.length) {
       const notes = contentEl.createEl("ul", { cls: "ktech-guard-notes" });
@@ -95,7 +80,7 @@ export class UpdatesModal extends Modal {
     }
 
     new Setting(contentEl)
-      .setName(t("すべて選択", "Select all"))
+      .setName(t("selectAll"))
       .addToggle((toggle) => {
         toggle.setValue(this.selected.size === this.updates.length);
         toggle.onChange((on) => {
@@ -110,7 +95,7 @@ export class UpdatesModal extends Modal {
     for (const update of this.updates) {
       const row = new Setting(contentEl);
       row.setName(update.name);
-      const beta = update.isBeta ? t("（ベータ）", " (beta)") : "";
+      const beta = update.isBeta ? t("beta") : "";
       row.setDesc(
         `${update.currentVersion} → ${update.latestVersion}${beta}` +
           (update.notes
@@ -129,16 +114,14 @@ export class UpdatesModal extends Modal {
     const actions = contentEl.createDiv({ cls: "modal-button-container" });
     const updateBtn = actions.createEl("button", {
       cls: "mod-cta",
-      text: t("選択したプラグインを更新", "Update selected"),
+      text: t("updateSelected"),
     });
     updateBtn.disabled = this.busy;
     updateBtn.addEventListener("click", () => {
       void this.applySelected();
     });
 
-    const cancelBtn = actions.createEl("button", {
-      text: t("キャンセル", "Cancel"),
-    });
+    const cancelBtn = actions.createEl("button", { text: t("cancel") });
     cancelBtn.addEventListener("click", () => this.close());
   }
 
@@ -146,23 +129,28 @@ export class UpdatesModal extends Modal {
     if (this.busy) return;
     const chosen = this.updates.filter((u) => this.selected.has(u.id));
     if (!chosen.length) {
-      new Notice(t("プラグインが選択されていません", "No plugins selected"));
+      new Notice(t("noneSelected"));
       return;
     }
+    chosen.sort((a, b) => {
+      const aSelf = a.id === PLUGIN_ID ? 1 : 0;
+      const bSelf = b.id === PLUGIN_ID ? 1 : 0;
+      return aSelf - bSelf;
+    });
     this.busy = true;
     this.render();
     let ok = 0;
+    let selfUpdated = false;
     const failed: string[] = [];
     for (const update of chosen) {
       try {
-        new Notice(
-          t(`${update.name} を更新しています…`, `Updating ${update.name}…`)
-        );
+        new Notice(t("updating", { name: update.name }));
         await installUpdate(this.app, update, this.token);
         ok += 1;
+        if (isSelfUpdate(update.id)) selfUpdated = true;
       } catch (err) {
         if (err instanceof RateLimitError) {
-          failed.push(t("GitHub の回数制限に達しました", "GitHub rate limit reached"));
+          failed.push(t("rateLimitedShort"));
           break;
         }
         failed.push(
@@ -173,13 +161,15 @@ export class UpdatesModal extends Modal {
     this.busy = false;
     this.close();
     if (ok) {
-      new Notice(
-        t(`${ok} 件を更新しました`, `Updated ${ok} plugin(s)`)
-      );
+      new Notice(t("updatedCount", { count: ok }));
     }
     if (failed.length) {
       new Notice(failed.join("\n"), 8000);
     }
     this.onDone();
+    if (selfUpdated) {
+      new Notice(t("selfUpdatedReload"));
+      window.setTimeout(() => reloadObsidian(this.app), 700);
+    }
   }
 }

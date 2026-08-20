@@ -1,9 +1,9 @@
 {
-  "id": "k-tech-plugin-guard",
-  "name": "K-Tech Plugin Guard",
-  "version": "0.1.0",
+  "id": "k-tech-update-guard",
+  "name": "K-Tech Update Guard",
+  "version": "0.1.1",
   "minAppVersion": "1.5.0",
-  "description": "Check community plugin updates on demand, then install only the ones you select.",
+  "description": "Check community updates on demand, then install only the ones you select.",
   "author": "K-Tech Studio",
   "authorUrl": "https://github.com/crossbeat461-a11y",
   "fundingUrl": "https://buymeacoffee.com/k_tech_studio",
