@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.2
+
+- Settings heading uses `Setting.setHeading()`
+- Settings reads are typed so they are not flagged as the 1.13 `Plugin.settings` API
+
+### 日本語
+
+- 設定の見出しを `Setting.setHeading()` に変更
+- 設定値の参照が 1.13 の `Plugin.settings` と誤判定されないように型を分離
+
 ## 0.1.1
 
 - Rename display name to **K-Tech Update Guard** (directory does not allow "Plugin" in the name)

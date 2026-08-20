@@ -10,7 +10,7 @@
 | Name | K-Tech Update Guard |
 | Author | K-Tech Studio |
 | Repo | `crossbeat461-a11y/k-tech-update-guard` |
-| Version | 0.1.1 |
+| Version | 0.1.2 |
 
 ## Privacy
 

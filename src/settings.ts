@@ -9,26 +9,28 @@ interface GuardPluginHost {
 }
 
 export class GuardSettingTab extends PluginSettingTab {
-  constructor(
-    app: App,
-    private readonly plugin: Plugin & GuardPluginHost
-  ) {
+  private readonly host: GuardPluginHost;
+
+  constructor(app: App, plugin: Plugin & GuardPluginHost) {
     super(app, plugin);
+    this.host = plugin;
   }
 
   display(): void {
     const { containerEl } = this;
+    const settings = this.host.settings;
     containerEl.empty();
-    containerEl.createEl("h2", { text: PLUGIN_NAME });
+
+    new Setting(containerEl).setName(PLUGIN_NAME).setHeading();
 
     new Setting(containerEl)
       .setName(t("checkOnStartup"))
       .setDesc(t("checkOnStartupDesc"))
       .addToggle((toggle) => {
-        toggle.setValue(this.plugin.settings.checkOnStartup);
+        toggle.setValue(settings.checkOnStartup);
         toggle.onChange(async (value) => {
-          this.plugin.settings.checkOnStartup = value;
-          await this.plugin.saveSettings();
+          settings.checkOnStartup = value;
+          await this.host.saveSettings();
         });
       });
 
@@ -36,20 +38,20 @@ export class GuardSettingTab extends PluginSettingTab {
       .setName(t("ignoreDisabled"))
       .setDesc(t("ignoreDisabledDesc"))
       .addToggle((toggle) => {
-        toggle.setValue(this.plugin.settings.ignoreDisabled);
+        toggle.setValue(settings.ignoreDisabled);
         toggle.onChange(async (value) => {
-          this.plugin.settings.ignoreDisabled = value;
-          await this.plugin.saveSettings();
+          settings.ignoreDisabled = value;
+          await this.host.saveSettings();
         });
       });
 
     new Setting(containerEl)
       .setName(t("hideBeta"))
       .addToggle((toggle) => {
-        toggle.setValue(this.plugin.settings.ignoreBeta);
+        toggle.setValue(settings.ignoreBeta);
         toggle.onChange(async (value) => {
-          this.plugin.settings.ignoreBeta = value;
-          await this.plugin.saveSettings();
+          settings.ignoreBeta = value;
+          await this.host.saveSettings();
         });
       });
 
@@ -58,11 +60,10 @@ export class GuardSettingTab extends PluginSettingTab {
       .setDesc(t("daysWaitDesc"))
       .addSlider((slider) => {
         slider.setLimits(0, 14, 1);
-        slider.setDynamicTooltip();
-        slider.setValue(this.plugin.settings.daysUntilShow);
+        slider.setValue(settings.daysUntilShow);
         slider.onChange(async (value) => {
-          this.plugin.settings.daysUntilShow = value;
-          await this.plugin.saveSettings();
+          settings.daysUntilShow = value;
+          await this.host.saveSettings();
         });
       });
 
@@ -74,38 +75,36 @@ export class GuardSettingTab extends PluginSettingTab {
         dropdown.addOption("wait-loaded", t("lazyWaitLoaded"));
         dropdown.addOption("fixed-delay", t("lazyFixedDelay"));
         dropdown.addOption("none", t("lazyNone"));
-        dropdown.setValue(this.plugin.settings.lazyStrategy);
+        dropdown.setValue(settings.lazyStrategy);
         dropdown.onChange(async (value) => {
-          this.plugin.settings.lazyStrategy = value as LazyStrategy;
-          await this.plugin.saveSettings();
+          settings.lazyStrategy = value as LazyStrategy;
+          await this.host.saveSettings();
           this.display();
         });
       });
 
-    if (this.plugin.settings.lazyStrategy === "fixed-delay") {
+    if (settings.lazyStrategy === "fixed-delay") {
       new Setting(containerEl)
         .setName(t("waitSeconds"))
         .addSlider((slider) => {
           slider.setLimits(1, 30, 1);
-          slider.setDynamicTooltip();
-          slider.setValue(this.plugin.settings.fixedDelaySeconds);
+          slider.setValue(settings.fixedDelaySeconds);
           slider.onChange(async (value) => {
-            this.plugin.settings.fixedDelaySeconds = value;
-            await this.plugin.saveSettings();
+            settings.fixedDelaySeconds = value;
+            await this.host.saveSettings();
           });
         });
     }
 
-    if (this.plugin.settings.lazyStrategy === "wait-loaded") {
+    if (settings.lazyStrategy === "wait-loaded") {
       new Setting(containerEl)
         .setName(t("waitTimeout"))
         .addSlider((slider) => {
           slider.setLimits(5, 60, 1);
-          slider.setDynamicTooltip();
-          slider.setValue(this.plugin.settings.waitLoadedTimeoutSeconds);
+          slider.setValue(settings.waitLoadedTimeoutSeconds);
           slider.onChange(async (value) => {
-            this.plugin.settings.waitLoadedTimeoutSeconds = value;
-            await this.plugin.saveSettings();
+            settings.waitLoadedTimeoutSeconds = value;
+            await this.host.saveSettings();
           });
         });
     }
@@ -116,10 +115,10 @@ export class GuardSettingTab extends PluginSettingTab {
       .addText((text) => {
         text.inputEl.type = "password";
         text.setPlaceholder("ghp_…");
-        text.setValue(this.plugin.settings.githubToken);
+        text.setValue(settings.githubToken);
         text.onChange(async (value) => {
-          this.plugin.settings.githubToken = value.trim();
-          await this.plugin.saveSettings();
+          settings.githubToken = value.trim();
+          await this.host.saveSettings();
         });
       });
 
