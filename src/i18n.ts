@@ -46,6 +46,7 @@ type Messages = {
   ignoreDisabled: string;
   ignoreDisabledDesc: string;
   hideBeta: string;
+  hideBetaDesc: string;
   daysWait: string;
   daysWaitDesc: string;
   lazyHandling: string;
@@ -61,6 +62,7 @@ type Messages = {
   supportOptional: string;
   selfUpdatedReload: string;
   missingReleaseFiles: string;
+  installVerifyFailed: string;
 };
 
 const en: Messages = {
@@ -92,7 +94,7 @@ const en: Messages = {
   statusChecking: "Checking…",
   checkingNotice: "Checking for updates…",
   rateLimitedLong:
-    "GitHub rate limit reached. Add a token in settings, or try again later.",
+    "GitHub rate limit reached. The official community installer uses the same GitHub limit. Add a token in settings, or wait about an hour.",
   statusUpToDate: "Up to date",
   statusError: "Error",
   checkFailed: "Check failed: {error}",
@@ -102,6 +104,8 @@ const en: Messages = {
   ignoreDisabledDesc:
     "With Lazy Loader, only items it marks Disabled are skipped. Delayed items stay included.",
   hideBeta: "Hide beta versions",
+  hideBetaDesc:
+    "Hides GitHub prereleases and releases whose name or notes say beta, alpha, or rc.",
   daysWait: "Days to wait after a release",
   daysWaitDesc: "0 shows a release as soon as this check finds it.",
   lazyHandling: "Delayed loading",
@@ -115,10 +119,12 @@ const en: Messages = {
   waitTimeout: "Wait timeout (seconds)",
   githubToken: "GitHub token (optional)",
   githubTokenDesc:
-    "Unauthenticated checks are about 60 GitHub requests per hour. A PAT is stored locally only and is never sent to a K-Tech server.",
+    "Without a token, GitHub allows about 60 API requests per hour for this network — shared with the official community installer. A PAT is stored locally only and is never sent to a K-Tech server.",
   supportOptional: "Support is optional.",
   selfUpdatedReload: "K-Tech Update Guard was updated. Reloading…",
   missingReleaseFiles: "Release is missing main.js or manifest.json",
+  installVerifyFailed:
+    "Wrote files for {name}, but the installed version is still {version}.",
 };
 
 const ja: Messages = {
@@ -150,7 +156,7 @@ const ja: Messages = {
   statusChecking: "確認中…",
   checkingNotice: "更新を確認しています…",
   rateLimitedLong:
-    "GitHub の回数制限に達しました。設定のトークンを使うか、時間をおいて再試行してください。",
+    "GitHub の回数制限に達しました。公式のコミュニティプラグインのインストールも同じ制限です。設定にトークンを入れるか、1時間ほど待ってください。",
   statusUpToDate: "最新",
   statusError: "エラー",
   checkFailed: "確認に失敗しました: {error}",
@@ -160,6 +166,8 @@ const ja: Messages = {
   ignoreDisabledDesc:
     "Lazy Loader があるときは、そちらの「無効」だけを無効とみなします（遅延読み込みは対象に残します）。",
   hideBeta: "ベータ版を出さない",
+  hideBetaDesc:
+    "GitHub のプレリリースと、名前やリリースノートに beta / alpha / rc とあるものを出さない。",
   daysWait: "公開から何日待つか",
   daysWaitDesc: "0 なら、確認した時点の最新を出します。",
   lazyHandling: "遅延読み込みの扱い",
@@ -173,10 +181,12 @@ const ja: Messages = {
   waitTimeout: "待ち時間の上限（秒）",
   githubToken: "GitHub トークン（任意）",
   githubTokenDesc:
-    "未認証は1時間あたり約60回です。多いときは PAT をローカルにだけ保存します。作者サーバーには送りません。",
+    "トークンなしは、この回線で GitHub API が1時間あたり約60回です。公式のコミュニティ導入も同じ回数です。PAT は端末内のみで、作者サーバーには送りません。",
   supportOptional: "開発支援は任意です。",
   selfUpdatedReload: "K-Tech Update Guard を更新しました。再読み込みします…",
   missingReleaseFiles: "リリースに main.js または manifest.json がありません",
+  installVerifyFailed:
+    "{name} のファイルは書きましたが、バージョンはまだ {version} です。",
 };
 
 const zhCn: Messages = {
@@ -215,6 +225,7 @@ const zhCn: Messages = {
   ignoreDisabledDesc:
     "若使用 Lazy Loader，仅将其中标记为禁用的项目排除。延迟加载的项目仍会包含。",
   hideBeta: "隐藏测试版",
+  hideBetaDesc: "隐藏 GitHub 预发布，以及名称或说明中含 beta / alpha / rc 的版本。",
   daysWait: "发布后等待天数",
   daysWaitDesc: "0 表示本次检查一发现就显示。",
   lazyHandling: "延迟加载处理",
@@ -231,6 +242,7 @@ const zhCn: Messages = {
   supportOptional: "支持开发为可选项。",
   selfUpdatedReload: "K-Tech Update Guard 已更新。正在重新加载…",
   missingReleaseFiles: "该 Release 缺少 main.js 或 manifest.json",
+  installVerifyFailed: "已写入 {name} 的文件，但安装版本仍为 {version}。",
 };
 
 const zhTw: Messages = {
@@ -269,6 +281,7 @@ const zhTw: Messages = {
   ignoreDisabledDesc:
     "若使用 Lazy Loader，只排除其中標記為停用的項目。延遲載入的項目仍會包含。",
   hideBeta: "隱藏測試版",
+  hideBetaDesc: "隱藏 GitHub 預發布，以及名稱或說明中含 beta / alpha / rc 的版本。",
   daysWait: "發布後等待天數",
   daysWaitDesc: "0 表示這次檢查一發現就顯示。",
   lazyHandling: "延遲載入處理",
@@ -285,6 +298,7 @@ const zhTw: Messages = {
   supportOptional: "支持開發為選用。",
   selfUpdatedReload: "K-Tech Update Guard 已更新。正在重新載入…",
   missingReleaseFiles: "此 Release 缺少 main.js 或 manifest.json",
+  installVerifyFailed: "已寫入 {name} 的檔案，但安裝版本仍為 {version}。",
 };
 
 const ko: Messages = {
@@ -326,6 +340,8 @@ const ko: Messages = {
   ignoreDisabledDesc:
     "Lazy Loader가 있으면 거기서 비활성으로 표시한 항목만 건너뜁니다. 지연 로드 항목은 포함됩니다.",
   hideBeta: "베타 버전 숨기기",
+  hideBetaDesc:
+    "GitHub 사전 릴리스와 이름·노트에 beta / alpha / rc가 있는 버전을 숨깁니다.",
   daysWait: "출시 후 대기 일수",
   daysWaitDesc: "0이면 이번 확인에서 발견되는 즉시 표시합니다.",
   lazyHandling: "지연 로드 처리",
@@ -342,6 +358,7 @@ const ko: Messages = {
   supportOptional: "후원은 선택 사항입니다.",
   selfUpdatedReload: "K-Tech Update Guard가 업데이트되었습니다. 다시 불러오는 중…",
   missingReleaseFiles: "릴리스에 main.js 또는 manifest.json이 없습니다",
+  installVerifyFailed: "{name} 파일을 썼지만 설치된 버전은 아직 {version}입니다.",
 };
 
 const es: Messages = {
@@ -383,6 +400,8 @@ const es: Messages = {
   ignoreDisabledDesc:
     "Con Lazy Loader, solo se omiten los marcados como Disabled. Los de carga diferida se incluyen.",
   hideBeta: "Ocultar versiones beta",
+  hideBetaDesc:
+    "Oculta prereleases de GitHub y versiones cuyo nombre o notas dicen beta, alpha o rc.",
   daysWait: "Días de espera tras el lanzamiento",
   daysWaitDesc: "0 muestra una versión en cuanto esta comprobación la encuentra.",
   lazyHandling: "Carga diferida",
@@ -399,6 +418,8 @@ const es: Messages = {
   supportOptional: "El apoyo es opcional.",
   selfUpdatedReload: "K-Tech Update Guard se actualizó. Recargando…",
   missingReleaseFiles: "Falta main.js o manifest.json en la release",
+  installVerifyFailed:
+    "Se escribieron archivos de {name}, pero la versión instalada sigue siendo {version}.",
 };
 
 const de: Messages = {
@@ -440,6 +461,8 @@ const de: Messages = {
   ignoreDisabledDesc:
     "Mit Lazy Loader gelten nur dort als Disabled markierte Einträge als deaktiviert. Verzögerte bleiben dabei.",
   hideBeta: "Beta-Versionen ausblenden",
+  hideBetaDesc:
+    "Blendet GitHub-Prereleases und Versionen aus, deren Name oder Notizen beta, alpha oder rc enthalten.",
   daysWait: "Tage nach Veröffentlichung warten",
   daysWaitDesc: "0 zeigt ein Release, sobald diese Prüfung es findet.",
   lazyHandling: "Verzögertes Laden",
@@ -456,6 +479,8 @@ const de: Messages = {
   supportOptional: "Unterstützung ist optional.",
   selfUpdatedReload: "K-Tech Update Guard wurde aktualisiert. Wird neu geladen…",
   missingReleaseFiles: "Release enthält kein main.js oder manifest.json",
+  installVerifyFailed:
+    "Dateien für {name} wurden geschrieben, aber die installierte Version ist noch {version}.",
 };
 
 const fr: Messages = {
@@ -497,6 +522,8 @@ const fr: Messages = {
   ignoreDisabledDesc:
     "Avec Lazy Loader, seuls ceux marqués Disabled sont omis. Les chargements différés restent inclus.",
   hideBeta: "Masquer les versions bêta",
+  hideBetaDesc:
+    "Masque les prereleases GitHub et les versions dont le nom ou les notes indiquent beta, alpha ou rc.",
   daysWait: "Jours d’attente après publication",
   daysWaitDesc: "0 affiche une version dès que cette vérification la trouve.",
   lazyHandling: "Chargement différé",
@@ -514,6 +541,8 @@ const fr: Messages = {
   supportOptional: "Le soutien est facultatif.",
   selfUpdatedReload: "K-Tech Update Guard a été mis à jour. Rechargement…",
   missingReleaseFiles: "La release n’a pas main.js ou manifest.json",
+  installVerifyFailed:
+    "Les fichiers de {name} ont été écrits, mais la version installée est encore {version}.",
 };
 
 const pt: Messages = {
@@ -555,6 +584,8 @@ const pt: Messages = {
   ignoreDisabledDesc:
     "Com o Lazy Loader, só os marcados como Disabled são omitidos. Os de carga atrasada entram na lista.",
   hideBeta: "Ocultar versões beta",
+  hideBetaDesc:
+    "Oculta prereleases do GitHub e versões cujo nome ou notas dizem beta, alpha ou rc.",
   daysWait: "Dias de espera após o lançamento",
   daysWaitDesc: "0 mostra uma versão assim que esta verificação a encontra.",
   lazyHandling: "Carga atrasada",
@@ -571,6 +602,8 @@ const pt: Messages = {
   supportOptional: "O apoio é opcional.",
   selfUpdatedReload: "O K-Tech Update Guard foi atualizado. Recarregando…",
   missingReleaseFiles: "A release não tem main.js ou manifest.json",
+  installVerifyFailed:
+    "Os arquivos de {name} foram gravados, mas a versão instalada ainda é {version}.",
 };
 
 const ru: Messages = {
@@ -612,6 +645,8 @@ const ru: Messages = {
   ignoreDisabledDesc:
     "С Lazy Loader пропускаются только помеченные Disabled. Отложенная загрузка остаётся в списке.",
   hideBeta: "Скрывать бета-версии",
+  hideBetaDesc:
+    "Скрывает GitHub prerelease и версии, в имени или заметках которых есть beta, alpha или rc.",
   daysWait: "Дней ожидания после выпуска",
   daysWaitDesc: "0 показывает выпуск сразу, как только эта проверка его найдёт.",
   lazyHandling: "Отложенная загрузка",
@@ -629,6 +664,8 @@ const ru: Messages = {
   supportOptional: "Поддержка необязательна.",
   selfUpdatedReload: "K-Tech Update Guard обновлён. Перезагрузка…",
   missingReleaseFiles: "В релизе нет main.js или manifest.json",
+  installVerifyFailed:
+    "Файлы {name} записаны, но установленная версия всё ещё {version}.",
 };
 
 const TABLES: Record<Locale, Messages> = {

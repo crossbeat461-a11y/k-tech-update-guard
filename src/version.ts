@@ -32,8 +32,12 @@ export function isNewerVersion(remote: string, local: string): boolean {
   return compareVersions(remote, local) > 0;
 }
 
-export function isBetaVersion(version: string, releaseName?: string): boolean {
-  const text = `${normalizeVersion(version)} ${releaseName || ""}`.toLowerCase();
+export function isBetaVersion(
+  version: string,
+  releaseName?: string,
+  notes?: string
+): boolean {
+  const text = `${normalizeVersion(version)} ${releaseName || ""} ${notes || ""}`.toLowerCase();
   return /\b(alpha|beta|rc|pre|preview|canary|nightly)\b/.test(text);
 }
 

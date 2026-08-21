@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.3
+
+- Treat GitHub release notes that say beta, alpha, or rc as beta (Hide betas)
+- After install, read the written manifest so the same update is not offered again
+- Check latest `manifest.json` from GitHub Releases first, to avoid burning the shared API limit
+- Download release files without GitHub API Accept headers
+
+### 日本語
+
+- リリースノートの beta / alpha / rc も「ベータ版を出さない」の対象にする
+- インストール後に書いた `manifest.json` を読み、同じ更新を出し直さない
+- 確認はまず Release の `manifest.json` を見る（GitHub API の回数を節約）
+- 配布ファイルの取得で GitHub API 用の Accept を付けない
+
 ## 0.1.2
 
 - Settings heading uses `Setting.setHeading()`

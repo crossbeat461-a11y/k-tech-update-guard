@@ -47,6 +47,7 @@ export class GuardSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName(t("hideBeta"))
+      .setDesc(t("hideBetaDesc"))
       .addToggle((toggle) => {
         toggle.setValue(settings.ignoreBeta);
         toggle.onChange(async (value) => {
