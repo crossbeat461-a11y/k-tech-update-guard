@@ -1,6 +1,6 @@
 import { requestUrl } from "obsidian";
 import { GITHUB_API, USER_AGENT } from "./constants";
-import type { ReleaseAsset } from "./types";
+import type { ItemKind, ReleaseAsset } from "./types";
 
 export interface GitHubRelease {
   tagName: string;
@@ -67,15 +67,43 @@ function downloadHeaders(token: string): Record<string, string> {
   return headers;
 }
 
+export function isGithubRepo(repo: string): boolean {
+  return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo.trim());
+}
+
 export function githubLatestFileUrl(repo: string, fileName: string): string {
   return `https://github.com/${repo}/releases/latest/download/${fileName}`;
 }
 
-export function defaultReleaseAssets(repo: string): ReleaseAsset[] {
+export function githubTagFileUrl(repo: string, tag: string, fileName: string): string {
+  return `https://github.com/${repo}/releases/download/${tag}/${fileName}`;
+}
+
+export function githubReleasePageUrl(repo: string, tag?: string): string {
+  if (tag) return `https://github.com/${repo}/releases/tag/${tag}`;
+  return `https://github.com/${repo}/releases/latest`;
+}
+
+function fileUrl(repo: string, fileName: string, tag?: string): string {
+  return tag ? githubTagFileUrl(repo, tag, fileName) : githubLatestFileUrl(repo, fileName);
+}
+
+export function defaultReleaseAssets(
+  repo: string,
+  kind: ItemKind = "plugin",
+  tag?: string
+): ReleaseAsset[] {
+  if (kind === "theme") {
+    return [
+      { name: "theme.css", downloadUrl: fileUrl(repo, "theme.css", tag) },
+      { name: "manifest.json", downloadUrl: fileUrl(repo, "manifest.json", tag) },
+      { name: "obsidian.css", downloadUrl: fileUrl(repo, "obsidian.css", tag) },
+    ];
+  }
   return [
-    { name: "main.js", downloadUrl: githubLatestFileUrl(repo, "main.js") },
-    { name: "manifest.json", downloadUrl: githubLatestFileUrl(repo, "manifest.json") },
-    { name: "styles.css", downloadUrl: githubLatestFileUrl(repo, "styles.css") },
+    { name: "main.js", downloadUrl: fileUrl(repo, "main.js", tag) },
+    { name: "manifest.json", downloadUrl: fileUrl(repo, "manifest.json", tag) },
+    { name: "styles.css", downloadUrl: fileUrl(repo, "styles.css", tag) },
   ];
 }
 

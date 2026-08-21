@@ -12,3 +12,53 @@
 .ktech-guard-notes li {
   margin: 0.25em 0;
 }
+
+.ktech-guard-item {
+  border-top: 1px solid var(--background-modifier-border);
+  padding: 0.4em 0 0.8em;
+}
+
+.ktech-guard-release {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 0.9em;
+  margin: 0.15em 0 0.4em;
+  align-items: center;
+}
+
+.ktech-guard-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-accent);
+  cursor: pointer;
+  font-size: 0.85em;
+  text-decoration: none;
+}
+
+.ktech-guard-link:hover {
+  text-decoration: underline;
+}
+
+.ktech-guard-release-notes {
+  max-height: 220px;
+  overflow: auto;
+  margin-top: 0.5em;
+  padding: 0.6em 0.8em;
+  border-radius: 6px;
+  background: var(--background-secondary);
+  font-size: 0.9em;
+}
+
+.ktech-guard-release-notes p:first-child {
+  margin-top: 0;
+}
+
+.ktech-guard-muted {
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.ktech-guard-backups {
+  margin-bottom: 1em;
+}

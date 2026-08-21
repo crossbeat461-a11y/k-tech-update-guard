@@ -34,6 +34,9 @@ var PLUGIN_NAME = "K-Tech Update Guard";
 var FUNDING_URL = "https://buymeacoffee.com/k_tech_studio";
 var OWN_REPO = "crossbeat461-a11y/k-tech-update-guard";
 var COMMUNITY_PLUGINS_URL = "https://raw.githubusercontent.com/obsidianmd/obsidian-releases/master/community-plugins.json";
+var COMMUNITY_THEMES_URL = "https://raw.githubusercontent.com/obsidianmd/obsidian-releases/master/community-css-themes.json";
+var PLUGIN_RELEASE_FILES = ["main.js", "manifest.json", "styles.css"];
+var THEME_RELEASE_FILES = ["theme.css", "manifest.json", "obsidian.css"];
 var GITHUB_API = "https://api.github.com";
 var CHECK_CONCURRENCY = 4;
 var USER_AGENT = "k-tech-update-guard";
@@ -89,14 +92,34 @@ function downloadHeaders(token) {
   }
   return headers;
 }
+function isGithubRepo(repo) {
+  return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo.trim());
+}
 function githubLatestFileUrl(repo, fileName) {
   return `https://github.com/${repo}/releases/latest/download/${fileName}`;
 }
-function defaultReleaseAssets(repo) {
+function githubTagFileUrl(repo, tag, fileName) {
+  return `https://github.com/${repo}/releases/download/${tag}/${fileName}`;
+}
+function githubReleasePageUrl(repo, tag) {
+  if (tag) return `https://github.com/${repo}/releases/tag/${tag}`;
+  return `https://github.com/${repo}/releases/latest`;
+}
+function fileUrl(repo, fileName, tag) {
+  return tag ? githubTagFileUrl(repo, tag, fileName) : githubLatestFileUrl(repo, fileName);
+}
+function defaultReleaseAssets(repo, kind = "plugin", tag) {
+  if (kind === "theme") {
+    return [
+      { name: "theme.css", downloadUrl: fileUrl(repo, "theme.css", tag) },
+      { name: "manifest.json", downloadUrl: fileUrl(repo, "manifest.json", tag) },
+      { name: "obsidian.css", downloadUrl: fileUrl(repo, "obsidian.css", tag) }
+    ];
+  }
   return [
-    { name: "main.js", downloadUrl: githubLatestFileUrl(repo, "main.js") },
-    { name: "manifest.json", downloadUrl: githubLatestFileUrl(repo, "manifest.json") },
-    { name: "styles.css", downloadUrl: githubLatestFileUrl(repo, "styles.css") }
+    { name: "main.js", downloadUrl: fileUrl(repo, "main.js", tag) },
+    { name: "manifest.json", downloadUrl: fileUrl(repo, "manifest.json", tag) },
+    { name: "styles.css", downloadUrl: fileUrl(repo, "styles.css", tag) }
   ];
 }
 async function fetchText(url, token = "") {
@@ -257,8 +280,25 @@ async function loadCommunityRegistry() {
     const rec = row;
     const id = String(rec.id || "").trim();
     const repo = String(rec.repo || "").trim();
-    if (id && repo && repo.indexOf("/") !== -1) {
+    if (id && isGithubRepo(repo)) {
       map.set(id, repo);
+    }
+  }
+  return map;
+}
+async function loadCommunityThemes() {
+  const map = /* @__PURE__ */ new Map();
+  const { status, json } = await fetchJson(COMMUNITY_THEMES_URL);
+  if (status < 200 || status >= 300 || !Array.isArray(json)) {
+    throw new Error("Could not load the community theme directory");
+  }
+  for (const row of json) {
+    if (!row || typeof row !== "object") continue;
+    const rec = row;
+    const name = String(rec.name || "").trim();
+    const repo = String(rec.repo || "").trim();
+    if (name && isGithubRepo(repo)) {
+      map.set(name, repo);
     }
   }
   return map;
@@ -315,7 +355,30 @@ var en = {
   supportOptional: "Support is optional.",
   selfUpdatedReload: "K-Tech Update Guard was updated. Reloading\u2026",
   missingReleaseFiles: "Release is missing main.js or manifest.json",
-  installVerifyFailed: "Wrote files for {name}, but the installed version is still {version}."
+  missingThemeFiles: "Release is missing theme.css or manifest.json",
+  installVerifyFailed: "Wrote files for {name}, but the installed version is still {version}.",
+  kindPlugin: "Plugin",
+  kindTheme: "Theme",
+  releaseNotes: "Release notes",
+  releaseNotesEmpty: "No release notes on GitHub for this version.",
+  loadNotes: "Load notes",
+  openRelease: "Open on GitHub",
+  ignoreItem: "Don't offer this again",
+  ignoredNotice: "{name} will be skipped on future checks.",
+  ignoreList: "Ignored items",
+  ignoreListDesc: "These are not offered as updates. Remove one to check it again.",
+  ignoreEmpty: "Nothing is ignored.",
+  unignore: "Remove",
+  checkThemes: "Check community themes",
+  checkThemesDesc: "Also check installed community themes (theme.css from GitHub Releases).",
+  rollbackHeading: "Previous files",
+  rollbackDesc: "Each update keeps the previous files. Restore writes them back.",
+  rollbackEmpty: "No backups yet. They appear after you install an update with this tool.",
+  rollbackButton: "Restore previous files",
+  rolledBack: "Restored previous files for {name}.",
+  rollbackFailed: "Could not restore {name}: {error}",
+  cmdRollback: "Restore previous files",
+  noBackup: "No previous files saved for this item."
 };
 var ja = {
   thanksInstall: "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059",
@@ -367,7 +430,30 @@ var ja = {
   supportOptional: "\u958B\u767A\u652F\u63F4\u306F\u4EFB\u610F\u3067\u3059\u3002",
   selfUpdatedReload: "K-Tech Update Guard \u3092\u66F4\u65B0\u3057\u307E\u3057\u305F\u3002\u518D\u8AAD\u307F\u8FBC\u307F\u3057\u307E\u3059\u2026",
   missingReleaseFiles: "\u30EA\u30EA\u30FC\u30B9\u306B main.js \u307E\u305F\u306F manifest.json \u304C\u3042\u308A\u307E\u305B\u3093",
-  installVerifyFailed: "{name} \u306E\u30D5\u30A1\u30A4\u30EB\u306F\u66F8\u304D\u307E\u3057\u305F\u304C\u3001\u30D0\u30FC\u30B8\u30E7\u30F3\u306F\u307E\u3060 {version} \u3067\u3059\u3002"
+  missingThemeFiles: "\u30EA\u30EA\u30FC\u30B9\u306B theme.css \u307E\u305F\u306F manifest.json \u304C\u3042\u308A\u307E\u305B\u3093",
+  installVerifyFailed: "{name} \u306E\u30D5\u30A1\u30A4\u30EB\u306F\u66F8\u304D\u307E\u3057\u305F\u304C\u3001\u30D0\u30FC\u30B8\u30E7\u30F3\u306F\u307E\u3060 {version} \u3067\u3059\u3002",
+  kindPlugin: "\u30D7\u30E9\u30B0\u30A4\u30F3",
+  kindTheme: "\u30C6\u30FC\u30DE",
+  releaseNotes: "\u30EA\u30EA\u30FC\u30B9\u30CE\u30FC\u30C8",
+  releaseNotesEmpty: "\u3053\u306E\u30D0\u30FC\u30B8\u30E7\u30F3\u306E GitHub \u30EA\u30EA\u30FC\u30B9\u30CE\u30FC\u30C8\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+  loadNotes: "\u30CE\u30FC\u30C8\u3092\u8AAD\u307F\u8FBC\u3080",
+  openRelease: "GitHub \u3067\u958B\u304F",
+  ignoreItem: "\u4ECA\u5F8C\u306F\u3053\u306E\u66F4\u65B0\u3092\u51FA\u3055\u306A\u3044",
+  ignoredNotice: "\u4ECA\u5F8C\u306E\u78BA\u8A8D\u3067 {name} \u3092\u5BFE\u8C61\u5916\u306B\u3057\u307E\u3059\u3002",
+  ignoreList: "\u7121\u8996\u3059\u308B\u9805\u76EE",
+  ignoreListDesc: "\u66F4\u65B0\u3068\u3057\u3066\u51FA\u3055\u306A\u3044\u9805\u76EE\u3067\u3059\u3002\u5916\u305B\u3070\u3001\u307E\u305F\u78BA\u8A8D\u3057\u307E\u3059\u3002",
+  ignoreEmpty: "\u7121\u8996\u3057\u3066\u3044\u308B\u9805\u76EE\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+  unignore: "\u89E3\u9664",
+  checkThemes: "\u30B3\u30DF\u30E5\u30CB\u30C6\u30A3\u30C6\u30FC\u30DE\u3082\u78BA\u8A8D\u3059\u308B",
+  checkThemesDesc: "\u5C0E\u5165\u6E08\u307F\u306E\u30B3\u30DF\u30E5\u30CB\u30C6\u30A3\u30C6\u30FC\u30DE\u3082\u78BA\u8A8D\u3057\u307E\u3059\uFF08GitHub Release \u306E theme.css\uFF09\u3002",
+  rollbackHeading: "\u76F4\u524D\u306E\u30D5\u30A1\u30A4\u30EB",
+  rollbackDesc: "\u66F4\u65B0\u306E\u524D\u306B\u30D5\u30A1\u30A4\u30EB\u3092\u6B8B\u3057\u307E\u3059\u3002\u623B\u3059\u3068\u305D\u308C\u3092\u66F8\u304D\u623B\u3057\u307E\u3059\u3002",
+  rollbackEmpty: "\u307E\u3060\u30D0\u30C3\u30AF\u30A2\u30C3\u30D7\u306F\u3042\u308A\u307E\u305B\u3093\u3002\u3053\u306E\u30C4\u30FC\u30EB\u3067\u66F4\u65B0\u3059\u308B\u3068\u6B8B\u308A\u307E\u3059\u3002",
+  rollbackButton: "\u76F4\u524D\u306E\u30D5\u30A1\u30A4\u30EB\u306B\u623B\u3059",
+  rolledBack: "{name} \u3092\u76F4\u524D\u306E\u30D5\u30A1\u30A4\u30EB\u306B\u623B\u3057\u307E\u3057\u305F\u3002",
+  rollbackFailed: "{name} \u3092\u623B\u305B\u307E\u305B\u3093\u3067\u3057\u305F: {error}",
+  cmdRollback: "\u76F4\u524D\u306E\u30D5\u30A1\u30A4\u30EB\u306B\u623B\u3059",
+  noBackup: "\u3053\u306E\u9805\u76EE\u306E\u76F4\u524D\u30D5\u30A1\u30A4\u30EB\u306F\u3042\u308A\u307E\u305B\u3093\u3002"
 };
 var zhCn = {
   thanksInstall: "\u611F\u8C22\u5B89\u88C5\uFF01",
@@ -419,7 +505,30 @@ var zhCn = {
   supportOptional: "\u652F\u6301\u5F00\u53D1\u4E3A\u53EF\u9009\u9879\u3002",
   selfUpdatedReload: "K-Tech Update Guard \u5DF2\u66F4\u65B0\u3002\u6B63\u5728\u91CD\u65B0\u52A0\u8F7D\u2026",
   missingReleaseFiles: "\u8BE5 Release \u7F3A\u5C11 main.js \u6216 manifest.json",
-  installVerifyFailed: "\u5DF2\u5199\u5165 {name} \u7684\u6587\u4EF6\uFF0C\u4F46\u5B89\u88C5\u7248\u672C\u4ECD\u4E3A {version}\u3002"
+  missingThemeFiles: "\u8BE5 Release \u7F3A\u5C11 theme.css \u6216 manifest.json",
+  installVerifyFailed: "\u5DF2\u5199\u5165 {name} \u7684\u6587\u4EF6\uFF0C\u4F46\u5B89\u88C5\u7248\u672C\u4ECD\u4E3A {version}\u3002",
+  kindPlugin: "\u63D2\u4EF6",
+  kindTheme: "\u4E3B\u9898",
+  releaseNotes: "\u53D1\u884C\u8BF4\u660E",
+  releaseNotesEmpty: "\u6B64\u7248\u672C\u5728 GitHub \u4E0A\u6CA1\u6709\u53D1\u884C\u8BF4\u660E\u3002",
+  loadNotes: "\u52A0\u8F7D\u8BF4\u660E",
+  openRelease: "\u5728 GitHub \u6253\u5F00",
+  ignoreItem: "\u4EE5\u540E\u4E0D\u518D\u63D0\u793A",
+  ignoredNotice: "\u4EE5\u540E\u68C0\u67E5\u65F6\u5C06\u8DF3\u8FC7 {name}\u3002",
+  ignoreList: "\u5FFD\u7565\u7684\u9879\u76EE",
+  ignoreListDesc: "\u8FD9\u4E9B\u9879\u76EE\u4E0D\u4F1A\u4F5C\u4E3A\u66F4\u65B0\u51FA\u73B0\u3002\u79FB\u9664\u540E\u4F1A\u518D\u6B21\u68C0\u67E5\u3002",
+  ignoreEmpty: "\u6CA1\u6709\u5FFD\u7565\u7684\u9879\u76EE\u3002",
+  unignore: "\u79FB\u9664",
+  checkThemes: "\u540C\u65F6\u68C0\u67E5\u793E\u533A\u4E3B\u9898",
+  checkThemesDesc: "\u4E5F\u68C0\u67E5\u5DF2\u5B89\u88C5\u7684\u793E\u533A\u4E3B\u9898\uFF08\u6765\u81EA GitHub Release \u7684 theme.css\uFF09\u3002",
+  rollbackHeading: "\u4E0A\u4E00\u4EFD\u6587\u4EF6",
+  rollbackDesc: "\u6BCF\u6B21\u66F4\u65B0\u90FD\u4F1A\u4FDD\u7559\u4E0A\u4E00\u4EFD\u6587\u4EF6\u3002\u8FD8\u539F\u4F1A\u5199\u56DE\u53BB\u3002",
+  rollbackEmpty: "\u8FD8\u6CA1\u6709\u5907\u4EFD\u3002\u7528\u672C\u5DE5\u5177\u5B89\u88C5\u66F4\u65B0\u540E\u4F1A\u51FA\u73B0\u3002",
+  rollbackButton: "\u8FD8\u539F\u4E0A\u4E00\u4EFD\u6587\u4EF6",
+  rolledBack: "\u5DF2\u5C06 {name} \u8FD8\u539F\u4E3A\u4E0A\u4E00\u4EFD\u6587\u4EF6\u3002",
+  rollbackFailed: "\u65E0\u6CD5\u8FD8\u539F {name}\uFF1A{error}",
+  cmdRollback: "\u8FD8\u539F\u4E0A\u4E00\u4EFD\u6587\u4EF6",
+  noBackup: "\u6B64\u9879\u76EE\u6CA1\u6709\u4FDD\u5B58\u4E0A\u4E00\u4EFD\u6587\u4EF6\u3002"
 };
 var zhTw = {
   thanksInstall: "\u611F\u8B1D\u5B89\u88DD\uFF01",
@@ -471,7 +580,30 @@ var zhTw = {
   supportOptional: "\u652F\u6301\u958B\u767C\u70BA\u9078\u7528\u3002",
   selfUpdatedReload: "K-Tech Update Guard \u5DF2\u66F4\u65B0\u3002\u6B63\u5728\u91CD\u65B0\u8F09\u5165\u2026",
   missingReleaseFiles: "\u6B64 Release \u7F3A\u5C11 main.js \u6216 manifest.json",
-  installVerifyFailed: "\u5DF2\u5BEB\u5165 {name} \u7684\u6A94\u6848\uFF0C\u4F46\u5B89\u88DD\u7248\u672C\u4ECD\u70BA {version}\u3002"
+  missingThemeFiles: "\u6B64 Release \u7F3A\u5C11 theme.css \u6216 manifest.json",
+  installVerifyFailed: "\u5DF2\u5BEB\u5165 {name} \u7684\u6A94\u6848\uFF0C\u4F46\u5B89\u88DD\u7248\u672C\u4ECD\u70BA {version}\u3002",
+  kindPlugin: "\u5916\u639B",
+  kindTheme: "\u4E3B\u984C",
+  releaseNotes: "\u767C\u884C\u8AAA\u660E",
+  releaseNotesEmpty: "\u6B64\u7248\u672C\u5728 GitHub \u4E0A\u6C92\u6709\u767C\u884C\u8AAA\u660E\u3002",
+  loadNotes: "\u8F09\u5165\u8AAA\u660E",
+  openRelease: "\u5728 GitHub \u958B\u555F",
+  ignoreItem: "\u4EE5\u5F8C\u4E0D\u518D\u63D0\u793A",
+  ignoredNotice: "\u4EE5\u5F8C\u6AA2\u67E5\u6642\u5C07\u7565\u904E {name}\u3002",
+  ignoreList: "\u5FFD\u7565\u7684\u9805\u76EE",
+  ignoreListDesc: "\u9019\u4E9B\u9805\u76EE\u4E0D\u6703\u4F5C\u70BA\u66F4\u65B0\u51FA\u73FE\u3002\u79FB\u9664\u5F8C\u6703\u518D\u6B21\u6AA2\u67E5\u3002",
+  ignoreEmpty: "\u6C92\u6709\u5FFD\u7565\u7684\u9805\u76EE\u3002",
+  unignore: "\u79FB\u9664",
+  checkThemes: "\u540C\u6642\u6AA2\u67E5\u793E\u7FA4\u4E3B\u984C",
+  checkThemesDesc: "\u4E5F\u6AA2\u67E5\u5DF2\u5B89\u88DD\u7684\u793E\u7FA4\u4E3B\u984C\uFF08\u4F86\u81EA GitHub Release \u7684 theme.css\uFF09\u3002",
+  rollbackHeading: "\u4E0A\u4E00\u4EFD\u6A94\u6848",
+  rollbackDesc: "\u6BCF\u6B21\u66F4\u65B0\u90FD\u6703\u4FDD\u7559\u4E0A\u4E00\u4EFD\u6A94\u6848\u3002\u9084\u539F\u6703\u5BEB\u56DE\u53BB\u3002",
+  rollbackEmpty: "\u9084\u6C92\u6709\u5099\u4EFD\u3002\u7528\u672C\u5DE5\u5177\u5B89\u88DD\u66F4\u65B0\u5F8C\u6703\u51FA\u73FE\u3002",
+  rollbackButton: "\u9084\u539F\u4E0A\u4E00\u4EFD\u6A94\u6848",
+  rolledBack: "\u5DF2\u5C07 {name} \u9084\u539F\u70BA\u4E0A\u4E00\u4EFD\u6A94\u6848\u3002",
+  rollbackFailed: "\u7121\u6CD5\u9084\u539F {name}\uFF1A{error}",
+  cmdRollback: "\u9084\u539F\u4E0A\u4E00\u4EFD\u6A94\u6848",
+  noBackup: "\u6B64\u9805\u76EE\u6C92\u6709\u5132\u5B58\u4E0A\u4E00\u4EFD\u6A94\u6848\u3002"
 };
 var ko = {
   thanksInstall: "\uC124\uCE58\uD574 \uC8FC\uC154\uC11C \uAC10\uC0AC\uD569\uB2C8\uB2E4!",
@@ -523,7 +655,30 @@ var ko = {
   supportOptional: "\uD6C4\uC6D0\uC740 \uC120\uD0DD \uC0AC\uD56D\uC785\uB2C8\uB2E4.",
   selfUpdatedReload: "K-Tech Update Guard\uAC00 \uC5C5\uB370\uC774\uD2B8\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uBD88\uB7EC\uC624\uB294 \uC911\u2026",
   missingReleaseFiles: "\uB9B4\uB9AC\uC2A4\uC5D0 main.js \uB610\uB294 manifest.json\uC774 \uC5C6\uC2B5\uB2C8\uB2E4",
-  installVerifyFailed: "{name} \uD30C\uC77C\uC744 \uC37C\uC9C0\uB9CC \uC124\uCE58\uB41C \uBC84\uC804\uC740 \uC544\uC9C1 {version}\uC785\uB2C8\uB2E4."
+  missingThemeFiles: "\uB9B4\uB9AC\uC2A4\uC5D0 theme.css \uB610\uB294 manifest.json\uC774 \uC5C6\uC2B5\uB2C8\uB2E4",
+  installVerifyFailed: "{name} \uD30C\uC77C\uC744 \uC37C\uC9C0\uB9CC \uC124\uCE58\uB41C \uBC84\uC804\uC740 \uC544\uC9C1 {version}\uC785\uB2C8\uB2E4.",
+  kindPlugin: "\uD50C\uB7EC\uADF8\uC778",
+  kindTheme: "\uD14C\uB9C8",
+  releaseNotes: "\uB9B4\uB9AC\uC2A4 \uB178\uD2B8",
+  releaseNotesEmpty: "\uC774 \uBC84\uC804\uC758 GitHub \uB9B4\uB9AC\uC2A4 \uB178\uD2B8\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+  loadNotes: "\uB178\uD2B8 \uBD88\uB7EC\uC624\uAE30",
+  openRelease: "GitHub\uC5D0\uC11C \uC5F4\uAE30",
+  ignoreItem: "\uB2E4\uC2DC \uC81C\uC548\uD558\uC9C0 \uC54A\uC74C",
+  ignoredNotice: "\uC774\uD6C4 \uD655\uC778\uC5D0\uC11C {name}\uC744(\uB97C) \uAC74\uB108\uB701\uB2C8\uB2E4.",
+  ignoreList: "\uBB34\uC2DC\uD560 \uD56D\uBAA9",
+  ignoreListDesc: "\uC5C5\uB370\uC774\uD2B8\uB85C \uD45C\uC2DC\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uC81C\uAC70\uD558\uBA74 \uB2E4\uC2DC \uD655\uC778\uD569\uB2C8\uB2E4.",
+  ignoreEmpty: "\uBB34\uC2DC\uD55C \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+  unignore: "\uC81C\uAC70",
+  checkThemes: "\uCEE4\uBBA4\uB2C8\uD2F0 \uD14C\uB9C8\uB3C4 \uD655\uC778",
+  checkThemesDesc: "\uC124\uCE58\uB41C \uCEE4\uBBA4\uB2C8\uD2F0 \uD14C\uB9C8\uB3C4 \uD655\uC778\uD569\uB2C8\uB2E4(GitHub Release\uC758 theme.css).",
+  rollbackHeading: "\uC774\uC804 \uD30C\uC77C",
+  rollbackDesc: "\uC5C5\uB370\uC774\uD2B8 \uC804\uC5D0 \uD30C\uC77C\uC744 \uBCF4\uAD00\uD569\uB2C8\uB2E4. \uBCF5\uC6D0\uD558\uBA74 \uB2E4\uC2DC \uC501\uB2C8\uB2E4.",
+  rollbackEmpty: "\uC544\uC9C1 \uBC31\uC5C5\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. \uC774 \uB3C4\uAD6C\uB85C \uC5C5\uB370\uC774\uD2B8\uD558\uBA74 \uC0DD\uAE41\uB2C8\uB2E4.",
+  rollbackButton: "\uC774\uC804 \uD30C\uC77C\uB85C \uBCF5\uC6D0",
+  rolledBack: "{name}\uC744(\uB97C) \uC774\uC804 \uD30C\uC77C\uB85C \uBCF5\uC6D0\uD588\uC2B5\uB2C8\uB2E4.",
+  rollbackFailed: "{name}\uC744(\uB97C) \uBCF5\uC6D0\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: {error}",
+  cmdRollback: "\uC774\uC804 \uD30C\uC77C\uB85C \uBCF5\uC6D0",
+  noBackup: "\uC774 \uD56D\uBAA9\uC758 \uC774\uC804 \uD30C\uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4."
 };
 var es = {
   thanksInstall: "\xA1Gracias por instalar!",
@@ -575,7 +730,30 @@ var es = {
   supportOptional: "El apoyo es opcional.",
   selfUpdatedReload: "K-Tech Update Guard se actualiz\xF3. Recargando\u2026",
   missingReleaseFiles: "Falta main.js o manifest.json en la release",
-  installVerifyFailed: "Se escribieron archivos de {name}, pero la versi\xF3n instalada sigue siendo {version}."
+  missingThemeFiles: "Falta theme.css o manifest.json en la release",
+  installVerifyFailed: "Se escribieron archivos de {name}, pero la versi\xF3n instalada sigue siendo {version}.",
+  kindPlugin: "Complemento",
+  kindTheme: "Tema",
+  releaseNotes: "Notas de la versi\xF3n",
+  releaseNotesEmpty: "No hay notas de GitHub para esta versi\xF3n.",
+  loadNotes: "Cargar notas",
+  openRelease: "Abrir en GitHub",
+  ignoreItem: "No volver a ofrecer",
+  ignoredNotice: "{name} se omitir\xE1 en futuras comprobaciones.",
+  ignoreList: "Elementos ignorados",
+  ignoreListDesc: "No se ofrecen como actualizaciones. Quita uno para volver a comprobarlo.",
+  ignoreEmpty: "No hay nada ignorado.",
+  unignore: "Quitar",
+  checkThemes: "Comprobar temas de la comunidad",
+  checkThemesDesc: "Tambi\xE9n comprueba los temas comunitarios instalados (theme.css de GitHub Releases).",
+  rollbackHeading: "Archivos anteriores",
+  rollbackDesc: "Cada actualizaci\xF3n guarda los archivos previos. Restaurar los escribe de nuevo.",
+  rollbackEmpty: "A\xFAn no hay copias. Aparecen al instalar una actualizaci\xF3n con esta herramienta.",
+  rollbackButton: "Restaurar archivos anteriores",
+  rolledBack: "Se restauraron los archivos anteriores de {name}.",
+  rollbackFailed: "No se pudo restaurar {name}: {error}",
+  cmdRollback: "Restaurar archivos anteriores",
+  noBackup: "No hay archivos anteriores guardados para este elemento."
 };
 var de = {
   thanksInstall: "Danke f\xFCrs Installieren!",
@@ -627,7 +805,30 @@ var de = {
   supportOptional: "Unterst\xFCtzung ist optional.",
   selfUpdatedReload: "K-Tech Update Guard wurde aktualisiert. Wird neu geladen\u2026",
   missingReleaseFiles: "Release enth\xE4lt kein main.js oder manifest.json",
-  installVerifyFailed: "Dateien f\xFCr {name} wurden geschrieben, aber die installierte Version ist noch {version}."
+  missingThemeFiles: "Release enth\xE4lt kein theme.css oder manifest.json",
+  installVerifyFailed: "Dateien f\xFCr {name} wurden geschrieben, aber die installierte Version ist noch {version}.",
+  kindPlugin: "Plugin",
+  kindTheme: "Theme",
+  releaseNotes: "Release-Hinweise",
+  releaseNotesEmpty: "Keine GitHub-Release-Hinweise f\xFCr diese Version.",
+  loadNotes: "Hinweise laden",
+  openRelease: "Auf GitHub \xF6ffnen",
+  ignoreItem: "Nicht mehr anbieten",
+  ignoredNotice: "{name} wird bei k\xFCnftigen Pr\xFCfungen \xFCbersprungen.",
+  ignoreList: "Ignorierte Eintr\xE4ge",
+  ignoreListDesc: "Diese werden nicht als Updates angeboten. Entfernen, um sie wieder zu pr\xFCfen.",
+  ignoreEmpty: "Nichts wird ignoriert.",
+  unignore: "Entfernen",
+  checkThemes: "Community-Themes pr\xFCfen",
+  checkThemesDesc: "Pr\xFCft auch installierte Community-Themes (theme.css von GitHub Releases).",
+  rollbackHeading: "Vorherige Dateien",
+  rollbackDesc: "Jedes Update beh\xE4lt die vorherigen Dateien. Wiederherstellen schreibt sie zur\xFCck.",
+  rollbackEmpty: "Noch keine Sicherung. Sie entsteht nach einem Update mit diesem Tool.",
+  rollbackButton: "Vorherige Dateien wiederherstellen",
+  rolledBack: "Vorherige Dateien f\xFCr {name} wiederhergestellt.",
+  rollbackFailed: "{name} konnte nicht wiederhergestellt werden: {error}",
+  cmdRollback: "Vorherige Dateien wiederherstellen",
+  noBackup: "Keine vorherigen Dateien f\xFCr diesen Eintrag gespeichert."
 };
 var fr = {
   thanksInstall: "Merci pour l\u2019installation !",
@@ -679,7 +880,30 @@ var fr = {
   supportOptional: "Le soutien est facultatif.",
   selfUpdatedReload: "K-Tech Update Guard a \xE9t\xE9 mis \xE0 jour. Rechargement\u2026",
   missingReleaseFiles: "La release n\u2019a pas main.js ou manifest.json",
-  installVerifyFailed: "Les fichiers de {name} ont \xE9t\xE9 \xE9crits, mais la version install\xE9e est encore {version}."
+  missingThemeFiles: "La release n\u2019a pas theme.css ou manifest.json",
+  installVerifyFailed: "Les fichiers de {name} ont \xE9t\xE9 \xE9crits, mais la version install\xE9e est encore {version}.",
+  kindPlugin: "Extension",
+  kindTheme: "Th\xE8me",
+  releaseNotes: "Notes de version",
+  releaseNotesEmpty: "Pas de notes GitHub pour cette version.",
+  loadNotes: "Charger les notes",
+  openRelease: "Ouvrir sur GitHub",
+  ignoreItem: "Ne plus proposer",
+  ignoredNotice: "{name} sera ignor\xE9 lors des prochaines v\xE9rifications.",
+  ignoreList: "\xC9l\xE9ments ignor\xE9s",
+  ignoreListDesc: "Ils ne sont pas propos\xE9s en mise \xE0 jour. Retirez-en un pour le rev\xE9rifier.",
+  ignoreEmpty: "Rien n\u2019est ignor\xE9.",
+  unignore: "Retirer",
+  checkThemes: "V\xE9rifier les th\xE8mes communautaires",
+  checkThemesDesc: "V\xE9rifie aussi les th\xE8mes communautaires install\xE9s (theme.css des GitHub Releases).",
+  rollbackHeading: "Fichiers pr\xE9c\xE9dents",
+  rollbackDesc: "Chaque mise \xE0 jour conserve les fichiers pr\xE9c\xE9dents. Restaurer les r\xE9\xE9crit.",
+  rollbackEmpty: "Pas encore de copie. Elle appara\xEEt apr\xE8s une mise \xE0 jour avec cet outil.",
+  rollbackButton: "Restaurer les fichiers pr\xE9c\xE9dents",
+  rolledBack: "Fichiers pr\xE9c\xE9dents restaur\xE9s pour {name}.",
+  rollbackFailed: "Impossible de restaurer {name} : {error}",
+  cmdRollback: "Restaurer les fichiers pr\xE9c\xE9dents",
+  noBackup: "Aucun fichier pr\xE9c\xE9dent enregistr\xE9 pour cet \xE9l\xE9ment."
 };
 var pt = {
   thanksInstall: "Obrigado por instalar!",
@@ -731,7 +955,30 @@ var pt = {
   supportOptional: "O apoio \xE9 opcional.",
   selfUpdatedReload: "O K-Tech Update Guard foi atualizado. Recarregando\u2026",
   missingReleaseFiles: "A release n\xE3o tem main.js ou manifest.json",
-  installVerifyFailed: "Os arquivos de {name} foram gravados, mas a vers\xE3o instalada ainda \xE9 {version}."
+  missingThemeFiles: "A release n\xE3o tem theme.css ou manifest.json",
+  installVerifyFailed: "Os arquivos de {name} foram gravados, mas a vers\xE3o instalada ainda \xE9 {version}.",
+  kindPlugin: "Plugin",
+  kindTheme: "Tema",
+  releaseNotes: "Notas da vers\xE3o",
+  releaseNotesEmpty: "N\xE3o h\xE1 notas no GitHub para esta vers\xE3o.",
+  loadNotes: "Carregar notas",
+  openRelease: "Abrir no GitHub",
+  ignoreItem: "N\xE3o oferecer de novo",
+  ignoredNotice: "{name} ser\xE1 omitido nas pr\xF3ximas verifica\xE7\xF5es.",
+  ignoreList: "Itens ignorados",
+  ignoreListDesc: "N\xE3o s\xE3o oferecidos como atualiza\xE7\xE3o. Remova um para verific\xE1-lo de novo.",
+  ignoreEmpty: "Nada est\xE1 ignorado.",
+  unignore: "Remover",
+  checkThemes: "Verificar temas da comunidade",
+  checkThemesDesc: "Tamb\xE9m verifica temas da comunidade instalados (theme.css dos GitHub Releases).",
+  rollbackHeading: "Arquivos anteriores",
+  rollbackDesc: "Cada atualiza\xE7\xE3o guarda os arquivos anteriores. Restaurar os grava de volta.",
+  rollbackEmpty: "Ainda n\xE3o h\xE1 c\xF3pias. Elas aparecem ap\xF3s instalar uma atualiza\xE7\xE3o com esta ferramenta.",
+  rollbackButton: "Restaurar arquivos anteriores",
+  rolledBack: "Arquivos anteriores de {name} restaurados.",
+  rollbackFailed: "N\xE3o foi poss\xEDvel restaurar {name}: {error}",
+  cmdRollback: "Restaurar arquivos anteriores",
+  noBackup: "N\xE3o h\xE1 arquivos anteriores salvos para este item."
 };
 var ru = {
   thanksInstall: "\u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0443!",
@@ -783,7 +1030,30 @@ var ru = {
   supportOptional: "\u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430 \u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u0430.",
   selfUpdatedReload: "K-Tech Update Guard \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D. \u041F\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
   missingReleaseFiles: "\u0412 \u0440\u0435\u043B\u0438\u0437\u0435 \u043D\u0435\u0442 main.js \u0438\u043B\u0438 manifest.json",
-  installVerifyFailed: "\u0424\u0430\u0439\u043B\u044B {name} \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u044B, \u043D\u043E \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u0430\u044F \u0432\u0435\u0440\u0441\u0438\u044F \u0432\u0441\u0451 \u0435\u0449\u0451 {version}."
+  missingThemeFiles: "\u0412 \u0440\u0435\u043B\u0438\u0437\u0435 \u043D\u0435\u0442 theme.css \u0438\u043B\u0438 manifest.json",
+  installVerifyFailed: "\u0424\u0430\u0439\u043B\u044B {name} \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u044B, \u043D\u043E \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u0430\u044F \u0432\u0435\u0440\u0441\u0438\u044F \u0432\u0441\u0451 \u0435\u0449\u0451 {version}.",
+  kindPlugin: "\u041F\u043B\u0430\u0433\u0438\u043D",
+  kindTheme: "\u0422\u0435\u043C\u0430",
+  releaseNotes: "\u0417\u0430\u043C\u0435\u0442\u043A\u0438 \u043A \u0432\u044B\u043F\u0443\u0441\u043A\u0443",
+  releaseNotesEmpty: "\u041D\u0435\u0442 \u0437\u0430\u043C\u0435\u0442\u043E\u043A GitHub \u0434\u043B\u044F \u044D\u0442\u043E\u0439 \u0432\u0435\u0440\u0441\u0438\u0438.",
+  loadNotes: "\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0437\u0430\u043C\u0435\u0442\u043A\u0438",
+  openRelease: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043D\u0430 GitHub",
+  ignoreItem: "\u0411\u043E\u043B\u044C\u0448\u0435 \u043D\u0435 \u043F\u0440\u0435\u0434\u043B\u0430\u0433\u0430\u0442\u044C",
+  ignoredNotice: "{name} \u0431\u0443\u0434\u0435\u0442 \u043F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u0442\u044C\u0441\u044F \u043F\u0440\u0438 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0445 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430\u0445.",
+  ignoreList: "\u0418\u0433\u043D\u043E\u0440\u0438\u0440\u0443\u0435\u043C\u044B\u0435 \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u044B",
+  ignoreListDesc: "\u041E\u043D\u0438 \u043D\u0435 \u043F\u0440\u0435\u0434\u043B\u0430\u0433\u0430\u044E\u0442\u0441\u044F \u043A\u0430\u043A \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F. \u0423\u0431\u0435\u0440\u0438\u0442\u0435, \u0447\u0442\u043E\u0431\u044B \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0442\u044C \u0441\u043D\u043E\u0432\u0430.",
+  ignoreEmpty: "\u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u0438\u0433\u043D\u043E\u0440\u0438\u0440\u0443\u0435\u0442\u0441\u044F.",
+  unignore: "\u0423\u0431\u0440\u0430\u0442\u044C",
+  checkThemes: "\u041F\u0440\u043E\u0432\u0435\u0440\u044F\u0442\u044C \u0442\u0435\u043C\u044B \u0441\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u0430",
+  checkThemesDesc: "\u0422\u0430\u043A\u0436\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0442\u044C \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044B\u0435 \u0442\u0435\u043C\u044B \u0441\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u0430 (theme.css \u0438\u0437 GitHub Releases).",
+  rollbackHeading: "\u041F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0435 \u0444\u0430\u0439\u043B\u044B",
+  rollbackDesc: "\u041A\u0430\u0436\u0434\u043E\u0435 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0435\u0442 \u043F\u0440\u0435\u0436\u043D\u0438\u0435 \u0444\u0430\u0439\u043B\u044B. \u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0437\u0430\u043F\u0438\u0441\u044B\u0432\u0430\u0435\u0442 \u0438\u0445 \u043E\u0431\u0440\u0430\u0442\u043D\u043E.",
+  rollbackEmpty: "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043A\u043E\u043F\u0438\u0439. \u041E\u043D\u0438 \u043F\u043E\u044F\u0432\u043B\u044F\u044E\u0442\u0441\u044F \u043F\u043E\u0441\u043B\u0435 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F \u044D\u0442\u0438\u043C \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u043E\u043C.",
+  rollbackButton: "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u043F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0435 \u0444\u0430\u0439\u043B\u044B",
+  rolledBack: "\u041F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0435 \u0444\u0430\u0439\u043B\u044B {name} \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u044B.",
+  rollbackFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C {name}: {error}",
+  cmdRollback: "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u043F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0435 \u0444\u0430\u0439\u043B\u044B",
+  noBackup: "\u0414\u043B\u044F \u044D\u0442\u043E\u0433\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u0430 \u043D\u0435\u0442 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0445 \u043F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0445 \u0444\u0430\u0439\u043B\u043E\u0432."
 };
 var TABLES = {
   en,
@@ -842,6 +1112,66 @@ function t(key, vars) {
   return applyVars(table[key] || en[key], vars);
 }
 
+// src/types.ts
+var DEFAULT_SETTINGS = {
+  githubToken: "",
+  ignoreDisabled: true,
+  ignoreBeta: true,
+  daysUntilShow: 0,
+  lazyStrategy: "lazy-config",
+  fixedDelaySeconds: 8,
+  waitLoadedTimeoutSeconds: 25,
+  checkOnStartup: false,
+  checkThemes: true,
+  ignoredItems: []
+};
+function asIgnoredItems(raw) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    const rec = row;
+    const key = String(rec.key || "").trim();
+    const name = String(rec.name || key).trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ key, name });
+  }
+  return out;
+}
+function parseStorage(raw) {
+  if (!raw || typeof raw !== "object") {
+    return { settings: { ...DEFAULT_SETTINGS } };
+  }
+  const data = raw;
+  if ("settings" in data && data.settings && typeof data.settings === "object") {
+    const merged2 = Object.assign({}, DEFAULT_SETTINGS, data.settings);
+    merged2.ignoredItems = asIgnoredItems(
+      data.settings.ignoredItems
+    );
+    return {
+      settings: merged2,
+      lastSeenVersion: typeof data.lastSeenVersion === "string" ? data.lastSeenVersion : void 0
+    };
+  }
+  const merged = Object.assign({}, DEFAULT_SETTINGS, data);
+  merged.ignoredItems = asIgnoredItems(data.ignoredItems);
+  return {
+    settings: merged,
+    lastSeenVersion: void 0
+  };
+}
+function toStorage(settings, lastSeenVersion) {
+  return { settings, lastSeenVersion };
+}
+function itemKey(kind, id) {
+  return kind === "theme" ? `theme:${id}` : `plugin:${id}`;
+}
+function isIgnored(settings, key) {
+  return settings.ignoredItems.some((item) => item.key === key);
+}
+
 // src/version.ts
 function normalizeVersion(raw) {
   return String(raw || "").trim().replace(/^v/i, "");
@@ -882,6 +1212,10 @@ function daysSince(iso) {
 }
 
 // src/check.ts
+function baseName(path) {
+  const parts = path.replace(/\\/g, "/").split("/").filter(Boolean);
+  return parts[parts.length - 1] || path;
+}
 async function listInstalled(app) {
   const api = getPluginsApi(app);
   const configDir = app.vault.configDir;
@@ -902,11 +1236,123 @@ async function listInstalled(app) {
       name: manifest.name || manifest.id,
       version,
       dir,
-      enabled: api.enabledPlugins.has(manifest.id)
+      enabled: api.enabledPlugins.has(manifest.id),
+      kind: "plugin"
     });
   }
   out.sort((a, b) => a.name.localeCompare(b.name));
   return out;
+}
+async function listInstalledThemes(app) {
+  const themesDir = `${app.vault.configDir}/themes`;
+  const out = [];
+  try {
+    if (!await app.vault.adapter.exists(themesDir)) return out;
+    const listed = await app.vault.adapter.list(themesDir);
+    const folders = listed.folders || [];
+    for (const folder of folders) {
+      const id = baseName(folder);
+      if (!id) continue;
+      let name = id;
+      let version = "0";
+      try {
+        const raw = await app.vault.adapter.read(`${folder}/manifest.json`);
+        const parsed = JSON.parse(raw);
+        if (parsed.name) name = parsed.name;
+        if (parsed.version) version = parsed.version;
+      } catch (e) {
+      }
+      out.push({
+        id,
+        name,
+        version,
+        dir: folder,
+        enabled: true,
+        kind: "theme"
+      });
+    }
+  } catch (e) {
+    return out;
+  }
+  out.sort((a, b) => a.name.localeCompare(b.name));
+  return out;
+}
+async function evaluateRemote(item, repo, settings, state) {
+  const kind = item.kind || "plugin";
+  const key = itemKey(kind, item.id);
+  if (isIgnored(settings, key)) {
+    state.skipped += 1;
+    return null;
+  }
+  if (!isGithubRepo(repo)) {
+    state.skipped += 1;
+    return null;
+  }
+  const remote = await fetchLatestManifest(repo, settings.githubToken);
+  let latestVersion = remote ? normalizeVersion(remote.version) : "";
+  let tagName = latestVersion;
+  let notes = "";
+  let publishedAt = "";
+  let prerelease = false;
+  let assets = defaultReleaseAssets(repo, kind);
+  if (!latestVersion) {
+    if (state.rateLimited) {
+      state.skipped += 1;
+      return null;
+    }
+    const release = await fetchLatestRelease(repo, settings.githubToken);
+    if (!release) {
+      state.skipped += 1;
+      return null;
+    }
+    latestVersion = normalizeVersion(release.tagName);
+    tagName = release.tagName;
+    notes = release.notes || "";
+    publishedAt = release.publishedAt;
+    prerelease = release.prerelease;
+    if (release.assets.length) assets = release.assets;
+  }
+  if (!isNewerVersion(latestVersion, item.version)) return null;
+  if (!notes && !state.rateLimited) {
+    try {
+      const release = await fetchLatestRelease(repo, settings.githubToken);
+      if (release) {
+        tagName = release.tagName || tagName;
+        notes = release.notes || "";
+        publishedAt = release.publishedAt;
+        prerelease = release.prerelease;
+        if (release.assets.length) assets = release.assets;
+      }
+    } catch (err) {
+      if (err instanceof RateLimitError) {
+        state.rateLimited = true;
+        state.errors.push(t("rateLimitedLong"));
+      } else {
+        throw err;
+      }
+    }
+  }
+  const beta = prerelease || isBetaVersion(latestVersion, tagName, notes);
+  if (settings.ignoreBeta && beta) return null;
+  const daysOld = publishedAt ? daysSince(publishedAt) : 0;
+  const tooNew = settings.daysUntilShow > 0 && Boolean(publishedAt) && daysOld < settings.daysUntilShow;
+  if (tooNew) return null;
+  return {
+    id: item.id,
+    name: item.name,
+    currentVersion: item.version,
+    latestVersion,
+    repo,
+    tagName,
+    publishedAt,
+    notes,
+    isBeta: beta,
+    daysOld,
+    assets,
+    tooNew: false,
+    kind,
+    key
+  };
 }
 async function checkForUpdates(app, settings) {
   const lazy = await readLazySettings(app);
@@ -916,94 +1362,66 @@ async function checkForUpdates(app, settings) {
   await applyLazyWait(app, settings, pending, lazy);
   installed = await listInstalled(app);
   const registry = await loadCommunityRegistry();
-  const candidates = installed.filter(
+  const pluginCandidates = installed.filter(
     (plugin) => !isEffectivelyDisabled(plugin, settings, lazy)
   );
   const updates = [];
-  const errors = [];
-  let skipped = installed.length - candidates.length;
-  let rateLimited = false;
-  await mapPool(candidates, CHECK_CONCURRENCY, async (plugin) => {
+  const state = {
+    errors: [],
+    skipped: installed.length - pluginCandidates.length,
+    rateLimited: false
+  };
+  await mapPool(pluginCandidates, CHECK_CONCURRENCY, async (plugin) => {
     const repo = plugin.id === PLUGIN_ID ? OWN_REPO : registry.get(plugin.id);
     if (!repo) {
-      skipped += 1;
+      state.skipped += 1;
       return;
     }
     try {
-      const remote = await fetchLatestManifest(repo, settings.githubToken);
-      let latestVersion = remote ? normalizeVersion(remote.version) : "";
-      let tagName = latestVersion;
-      let notes = "";
-      let publishedAt = "";
-      let prerelease = false;
-      let assets = defaultReleaseAssets(repo);
-      if (!latestVersion) {
-        if (rateLimited) {
-          skipped += 1;
-          return;
-        }
-        const release = await fetchLatestRelease(repo, settings.githubToken);
-        if (!release) {
-          skipped += 1;
-          return;
-        }
-        latestVersion = normalizeVersion(release.tagName);
-        tagName = release.tagName;
-        notes = release.notes || "";
-        publishedAt = release.publishedAt;
-        prerelease = release.prerelease;
-        if (release.assets.length) assets = release.assets;
-      }
-      if (!isNewerVersion(latestVersion, plugin.version)) return;
-      if (!notes && !rateLimited && (settings.ignoreBeta || settings.daysUntilShow > 0)) {
-        try {
-          const release = await fetchLatestRelease(repo, settings.githubToken);
-          if (release) {
-            tagName = release.tagName || tagName;
-            notes = release.notes || "";
-            publishedAt = release.publishedAt;
-            prerelease = release.prerelease;
-            if (release.assets.length) assets = release.assets;
-          }
-        } catch (err) {
-          if (err instanceof RateLimitError) {
-            rateLimited = true;
-            errors.push(t("rateLimitedLong"));
-          } else {
-            throw err;
-          }
-        }
-      }
-      const beta = prerelease || isBetaVersion(latestVersion, tagName, notes);
-      if (settings.ignoreBeta && beta) return;
-      const daysOld = publishedAt ? daysSince(publishedAt) : 0;
-      const tooNew = settings.daysUntilShow > 0 && Boolean(publishedAt) && daysOld < settings.daysUntilShow;
-      if (tooNew) return;
-      updates.push({
-        id: plugin.id,
-        name: plugin.name,
-        currentVersion: plugin.version,
-        latestVersion,
-        repo,
-        tagName,
-        publishedAt,
-        notes,
-        isBeta: beta,
-        daysOld,
-        assets,
-        tooNew: false
-      });
+      const found = await evaluateRemote(plugin, repo, settings, state);
+      if (found) updates.push(found);
     } catch (err) {
       if (err instanceof RateLimitError) {
-        rateLimited = true;
-        errors.push(t("rateLimitedLong"));
+        state.rateLimited = true;
+        state.errors.push(t("rateLimitedLong"));
         return;
       }
-      errors.push(`${plugin.name}: ${err instanceof Error ? err.message : String(err)}`);
+      state.errors.push(
+        `${plugin.name}: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   });
+  if (settings.checkThemes) {
+    const themeRegistry = await loadCommunityThemes();
+    const themes = await listInstalledThemes(app);
+    await mapPool(themes, CHECK_CONCURRENCY, async (theme) => {
+      const repo = themeRegistry.get(theme.id) || themeRegistry.get(theme.name);
+      if (!repo) {
+        state.skipped += 1;
+        return;
+      }
+      try {
+        const found = await evaluateRemote(theme, repo, settings, state);
+        if (found) updates.push(found);
+      } catch (err) {
+        if (err instanceof RateLimitError) {
+          state.rateLimited = true;
+          state.errors.push(t("rateLimitedLong"));
+          return;
+        }
+        state.errors.push(
+          `${theme.name}: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    });
+  }
   updates.sort((a, b) => a.name.localeCompare(b.name));
-  return { updates, skipped, errors, rateLimited };
+  return {
+    updates,
+    skipped: state.skipped,
+    errors: state.errors,
+    rateLimited: state.rateLimited
+  };
 }
 
 // src/funding.ts
@@ -1045,92 +1463,288 @@ function openFundingModal(app, kind, version) {
 // src/modals.ts
 var import_obsidian3 = require("obsidian");
 
+// src/backup.ts
+var META_FILE = "backup.json";
+function backupsRoot(app) {
+  return `${app.vault.configDir}/plugins/${PLUGIN_ID}/backups`;
+}
+function encodeBackupKey(key) {
+  return key.replace(/[^A-Za-z0-9._-]+/g, "_");
+}
+function backupFolder(app, key) {
+  return `${backupsRoot(app)}/${encodeBackupKey(key)}`;
+}
+async function ensureDir(adapter, dir) {
+  if (await adapter.exists(dir)) return;
+  const parent = dir.replace(/\\/g, "/").replace(/\/[^/]+$/, "");
+  if (parent && parent !== dir) {
+    await ensureDir(adapter, parent);
+  }
+  await adapter.mkdir(dir);
+}
+async function readIfExists(adapter, path) {
+  try {
+    if (!await adapter.exists(path)) return null;
+    return await adapter.read(path);
+  } catch (e) {
+    return null;
+  }
+}
+async function saveBackup(app, record, sourceDir, fileNames) {
+  const adapter = app.vault.adapter;
+  const copied = [];
+  const contents = [];
+  for (const name of fileNames) {
+    const data = await readIfExists(adapter, `${sourceDir}/${name}`);
+    if (data == null) continue;
+    copied.push(name);
+    contents.push({ name, data });
+  }
+  if (!copied.length) return null;
+  const dir = backupFolder(app, record.key);
+  await ensureDir(adapter, dir);
+  for (const file of contents) {
+    await adapter.write(`${dir}/${file.name}`, file.data);
+  }
+  const meta = {
+    ...record,
+    files: copied,
+    savedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  await adapter.write(`${dir}/${META_FILE}`, JSON.stringify(meta, null, 2));
+  return meta;
+}
+async function readBackupMeta(app, key) {
+  const adapter = app.vault.adapter;
+  const raw = await readIfExists(adapter, `${backupFolder(app, key)}/${META_FILE}`);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || !parsed.key) return null;
+    return parsed;
+  } catch (e) {
+    return null;
+  }
+}
+async function listBackups(app) {
+  const adapter = app.vault.adapter;
+  const root = backupsRoot(app);
+  if (!await adapter.exists(root)) return [];
+  let folders = [];
+  try {
+    const listed = await adapter.list(root);
+    folders = listed.folders || [];
+  } catch (e) {
+    return [];
+  }
+  const out = [];
+  for (const folder of folders) {
+    const raw = await readIfExists(adapter, `${folder}/${META_FILE}`);
+    if (!raw) continue;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.key) out.push(parsed);
+    } catch (e) {
+    }
+  }
+  out.sort((a, b) => String(b.savedAt || "").localeCompare(String(a.savedAt || "")));
+  return out;
+}
+async function restoreBackup(app, key) {
+  const adapter = app.vault.adapter;
+  const meta = await readBackupMeta(app, key);
+  if (!meta || !meta.files.length) {
+    throw new Error(t("noBackup"));
+  }
+  const dir = backupFolder(app, key);
+  if (!await adapter.exists(meta.destDir)) {
+    await ensureDir(adapter, meta.destDir);
+  }
+  for (const name of meta.files) {
+    const data = await readIfExists(adapter, `${dir}/${name}`);
+    if (data == null) continue;
+    await adapter.write(`${meta.destDir}/${name}`, data);
+  }
+  return meta;
+}
+
 // src/installer.ts
 function assetUrl(update, fileName) {
   const found = update.assets.find((a) => a.name === fileName);
   if (found) return found.downloadUrl;
-  if (fileName === "styles.css") return null;
-  return `https://github.com/${update.repo}/releases/download/${update.tagName}/${fileName}`;
+  const optional = fileName === "styles.css" || fileName === "obsidian.css" || update.kind === "theme" && fileName === "theme.css";
+  if (optional && fileName !== "theme.css") return null;
+  if (!update.tagName) return null;
+  return githubTagFileUrl(update.repo, update.tagName, fileName);
 }
-function isSelfUpdate(id) {
-  return id === PLUGIN_ID;
+function isSelfUpdate(id, kind = "plugin") {
+  return kind === "plugin" && id === PLUGIN_ID;
+}
+function destDirFor(app, kind, id) {
+  if (kind === "theme") return `${app.vault.configDir}/themes/${id}`;
+  return `${app.vault.configDir}/plugins/${id}`;
+}
+function releaseFilesFor(kind) {
+  return kind === "theme" ? THEME_RELEASE_FILES : PLUGIN_RELEASE_FILES;
 }
 function reloadObsidian(app) {
   const commands = app.commands;
   if (commands && commands.executeCommandById("app:reload")) return;
   window.location.reload();
 }
-async function installUpdate(app, update, token) {
-  const mainUrl = assetUrl(update, "main.js");
-  const manifestUrl = assetUrl(update, "manifest.json");
-  if (!mainUrl || !manifestUrl) {
-    throw new Error(t("missingReleaseFiles"));
+async function reloadTheme(app, name) {
+  const css = app.customCss;
+  if (!css) return;
+  if (typeof css.readThemes === "function") {
+    await css.readThemes();
   }
-  const mainJs = await fetchText(mainUrl, token);
-  const manifest = await fetchText(manifestUrl, token);
-  if (!mainJs || !manifest || /^\s*</.test(mainJs) || /^\s*</.test(manifest)) {
-    throw new Error(t("missingReleaseFiles"));
+  if (css.theme === name && typeof css.setTheme === "function") {
+    css.setTheme(name);
+  }
+}
+async function downloadText(url, token, required) {
+  if (!url) {
+    if (required) throw new Error(t("missingReleaseFiles"));
+    return null;
   }
   try {
-    JSON.parse(manifest);
+    const text = await fetchText(url, token);
+    if (!text || /^\s*</.test(text)) {
+      if (required) throw new Error(t("missingReleaseFiles"));
+      return null;
+    }
+    return text;
+  } catch (err) {
+    if (err instanceof RateLimitError) throw err;
+    if (required) throw err;
+    return null;
+  }
+}
+async function installUpdate(app, update, token) {
+  const kind = update.kind || "plugin";
+  const dir = destDirFor(app, kind, update.id);
+  const files = releaseFilesFor(kind);
+  const manifestUrl = assetUrl(update, "manifest.json");
+  const manifest = await downloadText(manifestUrl, token, true);
+  if (!manifest) throw new Error(t("missingReleaseFiles"));
+  let parsed;
+  try {
+    parsed = JSON.parse(manifest);
   } catch (e) {
     throw new Error(t("missingReleaseFiles"));
   }
+  if (kind === "plugin" && parsed.id && parsed.id !== update.id) {
+    throw new Error(t("missingReleaseFiles"));
+  }
+  let mainJs = null;
   let styles = null;
-  const stylesUrl = assetUrl(update, "styles.css");
-  if (stylesUrl) {
-    try {
-      styles = await fetchText(stylesUrl, token);
-    } catch (err) {
-      if (err instanceof RateLimitError) throw err;
-      styles = null;
+  let themeCss = null;
+  let legacyCss = null;
+  if (kind === "plugin") {
+    mainJs = await downloadText(assetUrl(update, "main.js"), token, true);
+    styles = await downloadText(assetUrl(update, "styles.css"), token, false);
+    if (!mainJs) throw new Error(t("missingReleaseFiles"));
+  } else {
+    themeCss = await downloadText(assetUrl(update, "theme.css"), token, false);
+    legacyCss = await downloadText(assetUrl(update, "obsidian.css"), token, false);
+    if (!themeCss && !legacyCss) {
+      throw new Error(t("missingThemeFiles"));
     }
   }
-  const self = isSelfUpdate(update.id);
-  const api = getPluginsApi(app);
-  const wasEnabled = api.enabledPlugins.has(update.id);
-  if (!self && wasEnabled) {
+  const self = isSelfUpdate(update.id, kind);
+  const api = kind === "plugin" ? getPluginsApi(app) : null;
+  const wasEnabled = Boolean(api && api.enabledPlugins.has(update.id));
+  if (api && !self && wasEnabled) {
     await api.disablePlugin(update.id);
   }
-  const dir = `${app.vault.configDir}/plugins/${update.id}`;
   if (!await app.vault.adapter.exists(dir)) {
     await app.vault.adapter.mkdir(dir);
   }
-  await app.vault.adapter.write(`${dir}/main.js`, mainJs);
-  await app.vault.adapter.write(`${dir}/manifest.json`, manifest);
-  if (styles != null && styles.length) {
-    await app.vault.adapter.write(`${dir}/styles.css`, styles);
-  }
-  let writtenVersion = "";
+  await saveBackup(
+    app,
+    {
+      key: update.key,
+      name: update.name,
+      kind,
+      id: update.id,
+      fromVersion: update.currentVersion,
+      toVersion: update.latestVersion,
+      destDir: dir
+    },
+    dir,
+    [...files]
+  );
+  const write = async (name, body) => {
+    await app.vault.adapter.write(`${dir}/${name}`, body);
+  };
   try {
-    const writtenRaw = await app.vault.adapter.read(`${dir}/manifest.json`);
-    writtenVersion = String(
-      JSON.parse(writtenRaw).version || ""
-    ).trim();
-  } catch (e) {
-    writtenVersion = "";
-  }
-  const actual = normalizeVersion(writtenVersion);
-  const expected = normalizeVersion(update.latestVersion);
-  if (!actual || actual !== expected && !isNewerVersion(actual, update.currentVersion)) {
-    throw new Error(
-      t("installVerifyFailed", {
-        name: update.name,
-        version: writtenVersion || update.currentVersion
-      })
-    );
-  }
-  const installedManifest = api.manifests[update.id];
-  if (installedManifest) {
-    installedManifest.version = writtenVersion;
+    await write("manifest.json", manifest);
+    if (kind === "plugin") {
+      if (mainJs) await write("main.js", mainJs);
+      if (styles != null && styles.length) await write("styles.css", styles);
+    } else {
+      if (themeCss) await write("theme.css", themeCss);
+      if (legacyCss) await write("obsidian.css", legacyCss);
+    }
+    let writtenVersion = "";
+    try {
+      const writtenRaw = await app.vault.adapter.read(`${dir}/manifest.json`);
+      writtenVersion = String(
+        JSON.parse(writtenRaw).version || ""
+      ).trim();
+    } catch (e) {
+      writtenVersion = "";
+    }
+    const actual = normalizeVersion(writtenVersion);
+    const expected = normalizeVersion(update.latestVersion);
+    if (!actual || actual !== expected && !isNewerVersion(actual, update.currentVersion)) {
+      throw new Error(
+        t("installVerifyFailed", {
+          name: update.name,
+          version: writtenVersion || update.currentVersion
+        })
+      );
+    }
+    if (api) {
+      const installedManifest = api.manifests[update.id];
+      if (installedManifest) {
+        installedManifest.version = writtenVersion;
+      }
+    }
+  } catch (err) {
+    try {
+      await restoreBackup(app, update.key);
+    } catch (e) {
+    }
+    throw err;
   }
   if (self) return;
-  if (typeof api.loadManifests === "function") {
+  if (kind === "theme") {
+    await reloadTheme(app, update.id);
+    return;
+  }
+  if (api && typeof api.loadManifests === "function") {
     await api.loadManifests();
   }
-  if (wasEnabled) {
+  if (api && wasEnabled) {
     await api.enablePlugin(update.id);
   }
+}
+async function rollbackUpdate(app, key) {
+  const meta = await restoreBackup(app, key);
+  if (meta.kind === "plugin") {
+    const api = getPluginsApi(app);
+    if (typeof api.loadManifests === "function") {
+      await api.loadManifests();
+    }
+    const installedManifest = api.manifests[meta.id];
+    if (installedManifest) {
+      installedManifest.version = meta.fromVersion;
+    }
+  } else {
+    await reloadTheme(app, meta.id);
+  }
+  return { name: meta.name, kind: meta.kind, id: meta.id };
 }
 
 // src/modals.ts
@@ -1162,16 +1776,19 @@ var NoUpdatesModal = class extends import_obsidian3.Modal {
   }
 };
 var UpdatesModal = class extends import_obsidian3.Modal {
-  constructor(app, updates, token, extra, onDone) {
+  constructor(app, updates, token, extra, onIgnore, onDone) {
     super(app);
     this.updates = updates;
     this.token = token;
     this.extra = extra;
+    this.onIgnore = onIgnore;
     this.onDone = onDone;
     this.selected = /* @__PURE__ */ new Set();
+    this.expanded = /* @__PURE__ */ new Set();
     this.busy = false;
+    this.loadingNotes = /* @__PURE__ */ new Set();
     for (const update of updates) {
-      this.selected.add(update.id);
+      this.selected.add(update.key);
     }
   }
   onOpen() {
@@ -1195,30 +1812,19 @@ var UpdatesModal = class extends import_obsidian3.Modal {
       }
     }
     new import_obsidian3.Setting(contentEl).setName(t("selectAll")).addToggle((toggle) => {
-      toggle.setValue(this.selected.size === this.updates.length);
+      toggle.setValue(
+        this.updates.length > 0 && this.selected.size === this.updates.length
+      );
       toggle.onChange((on) => {
         this.selected.clear();
         if (on) {
-          for (const update of this.updates) this.selected.add(update.id);
+          for (const update of this.updates) this.selected.add(update.key);
         }
         this.render();
       });
     });
     for (const update of this.updates) {
-      const row = new import_obsidian3.Setting(contentEl);
-      row.setName(update.name);
-      const beta = update.isBeta ? t("beta") : "";
-      row.setDesc(
-        `${update.currentVersion} \u2192 ${update.latestVersion}${beta}` + (update.notes ? `
-${update.notes.trim().slice(0, 280)}${update.notes.length > 280 ? "\u2026" : ""}` : "")
-      );
-      row.addToggle((toggle) => {
-        toggle.setValue(this.selected.has(update.id));
-        toggle.onChange((on) => {
-          if (on) this.selected.add(update.id);
-          else this.selected.delete(update.id);
-        });
-      });
+      this.renderItem(contentEl, update);
     }
     const actions = contentEl.createDiv({ cls: "modal-button-container" });
     const updateBtn = actions.createEl("button", {
@@ -1232,9 +1838,113 @@ ${update.notes.trim().slice(0, 280)}${update.notes.length > 280 ? "\u2026" : ""}
     const cancelBtn = actions.createEl("button", { text: t("cancel") });
     cancelBtn.addEventListener("click", () => this.close());
   }
+  renderItem(parent, update) {
+    const wrap = parent.createDiv({ cls: "ktech-guard-item" });
+    const kindLabel = update.kind === "theme" ? t("kindTheme") : t("kindPlugin");
+    const beta = update.isBeta ? t("beta") : "";
+    const row = new import_obsidian3.Setting(wrap);
+    row.setName(update.name);
+    row.setDesc(`${kindLabel} \xB7 ${update.currentVersion} \u2192 ${update.latestVersion}${beta}`);
+    row.addToggle((toggle) => {
+      toggle.setValue(this.selected.has(update.key));
+      toggle.onChange((on) => {
+        if (on) this.selected.add(update.key);
+        else this.selected.delete(update.key);
+      });
+    });
+    const notesWrap = wrap.createDiv({ cls: "ktech-guard-release" });
+    const open = this.expanded.has(update.key);
+    const toggleBtn = notesWrap.createEl("button", {
+      cls: "ktech-guard-link",
+      text: t("releaseNotes")
+    });
+    toggleBtn.addEventListener("click", () => {
+      if (this.expanded.has(update.key)) this.expanded.delete(update.key);
+      else this.expanded.add(update.key);
+      this.render();
+    });
+    const githubBtn = notesWrap.createEl("a", {
+      cls: "ktech-guard-link",
+      text: t("openRelease"),
+      href: githubReleasePageUrl(update.repo, update.tagName)
+    });
+    githubBtn.setAttr("target", "_blank");
+    githubBtn.setAttr("rel", "noopener noreferrer");
+    const ignoreBtn = notesWrap.createEl("button", {
+      cls: "ktech-guard-link",
+      text: t("ignoreItem")
+    });
+    ignoreBtn.disabled = this.busy;
+    ignoreBtn.addEventListener("click", () => {
+      void this.ignoreItem(update);
+    });
+    if (!open) return;
+    const body = notesWrap.createDiv({ cls: "ktech-guard-release-notes" });
+    if (update.notes.trim()) {
+      void import_obsidian3.MarkdownRenderer.render(
+        this.app,
+        update.notes,
+        body,
+        "",
+        this
+      );
+      return;
+    }
+    if (this.loadingNotes.has(update.key)) {
+      body.createEl("p", { text: t("statusChecking") });
+      return;
+    }
+    const empty = body.createEl("p", { text: t("releaseNotesEmpty") });
+    empty.addClass("ktech-guard-muted");
+    const loadBtn = body.createEl("button", {
+      cls: "mod-cta",
+      text: t("loadNotes")
+    });
+    loadBtn.addEventListener("click", () => {
+      void this.loadNotes(update);
+    });
+  }
+  async loadNotes(update) {
+    if (this.loadingNotes.has(update.key)) return;
+    this.loadingNotes.add(update.key);
+    this.render();
+    try {
+      const release = await fetchLatestRelease(update.repo, this.token);
+      if (release) {
+        update.notes = release.notes || "";
+        update.tagName = release.tagName || update.tagName;
+        update.publishedAt = release.publishedAt || update.publishedAt;
+        update.isBeta = update.isBeta || release.prerelease;
+        if (release.assets.length) update.assets = release.assets;
+      }
+    } catch (err) {
+      if (err instanceof RateLimitError) {
+        new import_obsidian3.Notice(t("rateLimitedShort"));
+      } else {
+        new import_obsidian3.Notice(err instanceof Error ? err.message : String(err));
+      }
+    } finally {
+      this.loadingNotes.delete(update.key);
+      this.expanded.add(update.key);
+      this.render();
+    }
+  }
+  async ignoreItem(update) {
+    await this.onIgnore(update);
+    this.updates = this.updates.filter((item) => item.key !== update.key);
+    this.selected.delete(update.key);
+    this.expanded.delete(update.key);
+    new import_obsidian3.Notice(t("ignoredNotice", { name: update.name }));
+    if (!this.updates.length) {
+      this.close();
+      this.onDone();
+      return;
+    }
+    this.render();
+  }
   async applySelected() {
     if (this.busy) return;
-    const chosen = this.updates.filter((u) => this.selected.has(u.id));
+    const chosen = this.updates.filter((u) => this.selected.has(u.key));
     if (!chosen.length) {
       new import_obsidian3.Notice(t("noneSelected"));
       return;
@@ -1254,7 +1964,7 @@ ${update.notes.trim().slice(0, 280)}${update.notes.length > 280 ? "\u2026" : ""}
         new import_obsidian3.Notice(t("updating", { name: update.name }));
         await installUpdate(this.app, update, this.token);
         ok += 1;
-        if (isSelfUpdate(update.id)) selfUpdated = true;
+        if (isSelfUpdate(update.id, update.kind)) selfUpdated = true;
       } catch (err) {
         if (err instanceof RateLimitError) {
           failed.push(t("rateLimitedShort"));
@@ -1280,12 +1990,89 @@ ${update.notes.trim().slice(0, 280)}${update.notes.length > 280 ? "\u2026" : ""}
     }
   }
 };
+var RollbackModal = class extends import_obsidian3.Modal {
+  constructor(app, onRestored) {
+    super(app);
+    this.onRestored = onRestored;
+    this.busy = false;
+    this.backups = [];
+  }
+  onOpen() {
+    void this.reload();
+  }
+  onClose() {
+    this.contentEl.empty();
+  }
+  async reload() {
+    this.backups = await listBackups(this.app);
+    this.render();
+  }
+  render() {
+    const { contentEl, titleEl } = this;
+    contentEl.empty();
+    titleEl.setText(PLUGIN_NAME);
+    contentEl.createEl("h3", { text: t("rollbackHeading") });
+    contentEl.createEl("p", { text: t("rollbackDesc") });
+    if (!this.backups.length) {
+      contentEl.createEl("p", { text: t("rollbackEmpty"), cls: "ktech-guard-muted" });
+    } else {
+      for (const backup of this.backups) {
+        const kindLabel = backup.kind === "theme" ? t("kindTheme") : t("kindPlugin");
+        const row = new import_obsidian3.Setting(contentEl);
+        row.setName(backup.name);
+        row.setDesc(
+          `${kindLabel} \xB7 ${backup.toVersion} \u2192 ${backup.fromVersion}`
+        );
+        row.addButton((button) => {
+          button.setButtonText(t("rollbackButton"));
+          button.setDisabled(this.busy);
+          button.onClick(() => {
+            void this.restore(backup);
+          });
+        });
+      }
+    }
+    const actions = contentEl.createDiv({ cls: "modal-button-container" });
+    const closeBtn = actions.createEl("button", {
+      cls: "mod-cta",
+      text: t("close")
+    });
+    closeBtn.addEventListener("click", () => this.close());
+  }
+  async restore(backup) {
+    if (this.busy) return;
+    this.busy = true;
+    this.render();
+    try {
+      const restored = await rollbackUpdate(this.app, backup.key);
+      new import_obsidian3.Notice(t("rolledBack", { name: restored.name }));
+      this.onRestored(restored.id, restored.kind);
+      if (isSelfUpdate(restored.id, restored.kind)) {
+        new import_obsidian3.Notice(t("selfUpdatedReload"));
+        window.setTimeout(() => reloadObsidian(this.app), 700);
+      }
+      await this.reload();
+    } catch (err) {
+      new import_obsidian3.Notice(
+        t("rollbackFailed", {
+          name: backup.name,
+          error: err instanceof Error ? err.message : String(err)
+        }),
+        8e3
+      );
+    } finally {
+      this.busy = false;
+      if (this.containerEl.isConnected) this.render();
+    }
+  }
+};
 
 // src/settings.ts
 var import_obsidian4 = require("obsidian");
 var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
+    this.busyKey = "";
     this.host = plugin;
   }
   display() {
@@ -1297,6 +2084,13 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
       toggle.setValue(settings.checkOnStartup);
       toggle.onChange(async (value) => {
         settings.checkOnStartup = value;
+        await this.host.saveSettings();
+      });
+    });
+    new import_obsidian4.Setting(containerEl).setName(t("checkThemes")).setDesc(t("checkThemesDesc")).addToggle((toggle) => {
+      toggle.setValue(settings.checkThemes);
+      toggle.onChange(async (value) => {
+        settings.checkThemes = value;
         await this.host.saveSettings();
       });
     });
@@ -1363,6 +2157,30 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
         await this.host.saveSettings();
       });
     });
+    new import_obsidian4.Setting(containerEl).setName(t("ignoreList")).setHeading();
+    new import_obsidian4.Setting(containerEl).setName("").setDesc(t("ignoreListDesc"));
+    if (!settings.ignoredItems.length) {
+      containerEl.createEl("p", {
+        text: t("ignoreEmpty"),
+        cls: "ktech-guard-muted"
+      });
+    } else {
+      for (const item of settings.ignoredItems) {
+        new import_obsidian4.Setting(containerEl).setName(item.name).addButton((button) => {
+          button.setButtonText(t("unignore"));
+          button.onClick(async () => {
+            settings.ignoredItems = settings.ignoredItems.filter(
+              (row) => row.key !== item.key
+            );
+            await this.host.saveSettings();
+            this.display();
+          });
+        });
+      }
+    }
+    new import_obsidian4.Setting(containerEl).setName(t("rollbackHeading")).setHeading();
+    new import_obsidian4.Setting(containerEl).setName("").setDesc(t("rollbackDesc"));
+    const backupMount = containerEl.createDiv({ cls: "ktech-guard-backups" });
     new import_obsidian4.Setting(containerEl).setName(t("bmc")).setDesc(t("supportOptional")).addButton((button) => {
       button.setButtonText(t("bmc"));
       button.setCta();
@@ -1370,39 +2188,53 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
         window.open(FUNDING_URL, "_blank");
       });
     });
+    void this.renderBackups(backupMount);
+  }
+  async renderBackups(mount) {
+    const backups = await listBackups(this.app);
+    mount.empty();
+    if (!backups.length) {
+      mount.createEl("p", {
+        text: t("rollbackEmpty"),
+        cls: "ktech-guard-muted"
+      });
+      return;
+    }
+    for (const backup of backups) {
+      const kindLabel = backup.kind === "theme" ? t("kindTheme") : t("kindPlugin");
+      new import_obsidian4.Setting(mount).setName(backup.name).setDesc(`${kindLabel} \xB7 ${backup.toVersion} \u2192 ${backup.fromVersion}`).addButton((button) => {
+        button.setButtonText(t("rollbackButton"));
+        button.setDisabled(this.busyKey === backup.key);
+        button.onClick(() => {
+          void this.restore(backup.key, backup.name, backup.id, backup.kind);
+        });
+      });
+    }
+  }
+  async restore(key, name, id, kind) {
+    this.busyKey = key;
+    this.display();
+    try {
+      await rollbackUpdate(this.app, key);
+      new import_obsidian4.Notice(t("rolledBack", { name }));
+      if (isSelfUpdate(id, kind) || id === PLUGIN_ID) {
+        new import_obsidian4.Notice(t("selfUpdatedReload"));
+        window.setTimeout(() => reloadObsidian(this.app), 700);
+        return;
+      }
+    } catch (err) {
+      new import_obsidian4.Notice(
+        t("rollbackFailed", {
+          name,
+          error: err instanceof Error ? err.message : String(err)
+        }),
+        8e3
+      );
+    }
+    this.busyKey = "";
+    this.display();
   }
 };
-
-// src/types.ts
-var DEFAULT_SETTINGS = {
-  githubToken: "",
-  ignoreDisabled: true,
-  ignoreBeta: true,
-  daysUntilShow: 0,
-  lazyStrategy: "lazy-config",
-  fixedDelaySeconds: 8,
-  waitLoadedTimeoutSeconds: 25,
-  checkOnStartup: false
-};
-function parseStorage(raw) {
-  if (!raw || typeof raw !== "object") {
-    return { settings: { ...DEFAULT_SETTINGS } };
-  }
-  const data = raw;
-  if ("settings" in data && data.settings && typeof data.settings === "object") {
-    return {
-      settings: Object.assign({}, DEFAULT_SETTINGS, data.settings),
-      lastSeenVersion: typeof data.lastSeenVersion === "string" ? data.lastSeenVersion : void 0
-    };
-  }
-  return {
-    settings: Object.assign({}, DEFAULT_SETTINGS, data),
-    lastSeenVersion: void 0
-  };
-}
-function toStorage(settings, lastSeenVersion) {
-  return { settings, lastSeenVersion };
-}
 
 // src/main.ts
 var KTechUpdateGuard = class extends import_obsidian5.Plugin {
@@ -1428,6 +2260,15 @@ var KTechUpdateGuard = class extends import_obsidian5.Plugin {
       name: t("cmdCheck"),
       callback: () => {
         void this.runCheck();
+      }
+    });
+    this.addCommand({
+      id: "restore-previous-files",
+      name: t("cmdRollback"),
+      callback: () => {
+        new RollbackModal(this.app, () => {
+          this.setStatus(t("statusCheck"));
+        }).open();
       }
     });
     this.addSettingTab(new GuardSettingTab(this.app, this));
@@ -1464,6 +2305,14 @@ var KTechUpdateGuard = class extends import_obsidian5.Plugin {
     this.lastSeenVersion = currentVersion;
     await this.saveSettings();
   }
+  async ignoreUpdate(update) {
+    if (this.settings.ignoredItems.some((item) => item.key === update.key)) return;
+    this.settings.ignoredItems = [
+      ...this.settings.ignoredItems,
+      { key: update.key, name: update.name }
+    ];
+    await this.saveSettings();
+  }
   async runCheck() {
     if (this.checking) {
       new import_obsidian5.Notice(t("alreadyChecking"));
@@ -1488,6 +2337,7 @@ var KTechUpdateGuard = class extends import_obsidian5.Plugin {
         result.updates,
         this.settings.githubToken,
         extra,
+        (update) => this.ignoreUpdate(update),
         () => {
           this.setStatus(t("statusCheck"));
         }

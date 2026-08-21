@@ -1,6 +1,8 @@
-import { App, Plugin, PluginSettingTab, Setting } from "obsidian";
-import { FUNDING_URL, PLUGIN_NAME } from "./constants";
+import { App, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
+import { listBackups } from "./backup";
+import { FUNDING_URL, PLUGIN_ID, PLUGIN_NAME } from "./constants";
 import { t } from "./i18n";
+import { isSelfUpdate, reloadObsidian, rollbackUpdate } from "./installer";
 import type { GuardSettings, LazyStrategy } from "./types";
 
 interface GuardPluginHost {
@@ -10,6 +12,7 @@ interface GuardPluginHost {
 
 export class GuardSettingTab extends PluginSettingTab {
   private readonly host: GuardPluginHost;
+  private busyKey = "";
 
   constructor(app: App, plugin: Plugin & GuardPluginHost) {
     super(app, plugin);
@@ -30,6 +33,17 @@ export class GuardSettingTab extends PluginSettingTab {
         toggle.setValue(settings.checkOnStartup);
         toggle.onChange(async (value) => {
           settings.checkOnStartup = value;
+          await this.host.saveSettings();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName(t("checkThemes"))
+      .setDesc(t("checkThemesDesc"))
+      .addToggle((toggle) => {
+        toggle.setValue(settings.checkThemes);
+        toggle.onChange(async (value) => {
+          settings.checkThemes = value;
           await this.host.saveSettings();
         });
       });
@@ -123,6 +137,32 @@ export class GuardSettingTab extends PluginSettingTab {
         });
       });
 
+    new Setting(containerEl).setName(t("ignoreList")).setHeading();
+    new Setting(containerEl).setName("").setDesc(t("ignoreListDesc"));
+    if (!settings.ignoredItems.length) {
+      containerEl.createEl("p", {
+        text: t("ignoreEmpty"),
+        cls: "ktech-guard-muted",
+      });
+    } else {
+      for (const item of settings.ignoredItems) {
+        new Setting(containerEl).setName(item.name).addButton((button) => {
+          button.setButtonText(t("unignore"));
+          button.onClick(async () => {
+            settings.ignoredItems = settings.ignoredItems.filter(
+              (row) => row.key !== item.key
+            );
+            await this.host.saveSettings();
+            this.display();
+          });
+        });
+      }
+    }
+
+    new Setting(containerEl).setName(t("rollbackHeading")).setHeading();
+    new Setting(containerEl).setName("").setDesc(t("rollbackDesc"));
+    const backupMount = containerEl.createDiv({ cls: "ktech-guard-backups" });
+
     new Setting(containerEl)
       .setName(t("bmc"))
       .setDesc(t("supportOptional"))
@@ -133,5 +173,61 @@ export class GuardSettingTab extends PluginSettingTab {
           window.open(FUNDING_URL, "_blank");
         });
       });
+
+    void this.renderBackups(backupMount);
+  }
+
+  private async renderBackups(mount: HTMLElement): Promise<void> {
+    const backups = await listBackups(this.app);
+    mount.empty();
+    if (!backups.length) {
+      mount.createEl("p", {
+        text: t("rollbackEmpty"),
+        cls: "ktech-guard-muted",
+      });
+      return;
+    }
+    for (const backup of backups) {
+      const kindLabel = backup.kind === "theme" ? t("kindTheme") : t("kindPlugin");
+      new Setting(mount)
+        .setName(backup.name)
+        .setDesc(`${kindLabel} · ${backup.toVersion} → ${backup.fromVersion}`)
+        .addButton((button) => {
+          button.setButtonText(t("rollbackButton"));
+          button.setDisabled(this.busyKey === backup.key);
+          button.onClick(() => {
+            void this.restore(backup.key, backup.name, backup.id, backup.kind);
+          });
+        });
+    }
+  }
+
+  private async restore(
+    key: string,
+    name: string,
+    id: string,
+    kind: "plugin" | "theme"
+  ): Promise<void> {
+    this.busyKey = key;
+    this.display();
+    try {
+      await rollbackUpdate(this.app, key);
+      new Notice(t("rolledBack", { name }));
+      if (isSelfUpdate(id, kind) || id === PLUGIN_ID) {
+        new Notice(t("selfUpdatedReload"));
+        window.setTimeout(() => reloadObsidian(this.app), 700);
+        return;
+      }
+    } catch (err) {
+      new Notice(
+        t("rollbackFailed", {
+          name,
+          error: err instanceof Error ? err.message : String(err),
+        }),
+        8000
+      );
+    }
+    this.busyKey = "";
+    this.display();
   }
 }

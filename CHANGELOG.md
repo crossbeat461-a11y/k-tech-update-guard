@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0
+
+- Ignore list: skip an item on future checks, and remove it again in Settings
+- Rollback: keep the previous files and restore them from Settings or the command
+- Release notes in the update dialog, with a GitHub link
+- Check installed community themes (`theme.css` from GitHub Releases)
+
+### 日本語
+
+- 無視リスト：今後の確認から外し、設定から解除できる
+- ロールバック：更新前のファイルを残し、設定またはコマンドで戻せる
+- 更新ダイアログでリリースノートを表示（GitHub へのリンク付き）
+- 導入済みコミュニティテーマも確認（GitHub Release の `theme.css`）
+
 ## 0.1.3
 
 - Treat GitHub release notes that say beta, alpha, or rc as beta (Hide betas)

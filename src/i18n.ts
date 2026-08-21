@@ -62,7 +62,30 @@ type Messages = {
   supportOptional: string;
   selfUpdatedReload: string;
   missingReleaseFiles: string;
+  missingThemeFiles: string;
   installVerifyFailed: string;
+  kindPlugin: string;
+  kindTheme: string;
+  releaseNotes: string;
+  releaseNotesEmpty: string;
+  loadNotes: string;
+  openRelease: string;
+  ignoreItem: string;
+  ignoredNotice: string;
+  ignoreList: string;
+  ignoreListDesc: string;
+  ignoreEmpty: string;
+  unignore: string;
+  checkThemes: string;
+  checkThemesDesc: string;
+  rollbackHeading: string;
+  rollbackDesc: string;
+  rollbackEmpty: string;
+  rollbackButton: string;
+  rolledBack: string;
+  rollbackFailed: string;
+  cmdRollback: string;
+  noBackup: string;
 };
 
 const en: Messages = {
@@ -123,8 +146,32 @@ const en: Messages = {
   supportOptional: "Support is optional.",
   selfUpdatedReload: "K-Tech Update Guard was updated. Reloading…",
   missingReleaseFiles: "Release is missing main.js or manifest.json",
+  missingThemeFiles: "Release is missing theme.css or manifest.json",
   installVerifyFailed:
     "Wrote files for {name}, but the installed version is still {version}.",
+  kindPlugin: "Plugin",
+  kindTheme: "Theme",
+  releaseNotes: "Release notes",
+  releaseNotesEmpty: "No release notes on GitHub for this version.",
+  loadNotes: "Load notes",
+  openRelease: "Open on GitHub",
+  ignoreItem: "Don't offer this again",
+  ignoredNotice: "{name} will be skipped on future checks.",
+  ignoreList: "Ignored items",
+  ignoreListDesc: "These are not offered as updates. Remove one to check it again.",
+  ignoreEmpty: "Nothing is ignored.",
+  unignore: "Remove",
+  checkThemes: "Check community themes",
+  checkThemesDesc:
+    "Also check installed community themes (theme.css from GitHub Releases).",
+  rollbackHeading: "Previous files",
+  rollbackDesc: "Each update keeps the previous files. Restore writes them back.",
+  rollbackEmpty: "No backups yet. They appear after you install an update with this tool.",
+  rollbackButton: "Restore previous files",
+  rolledBack: "Restored previous files for {name}.",
+  rollbackFailed: "Could not restore {name}: {error}",
+  cmdRollback: "Restore previous files",
+  noBackup: "No previous files saved for this item.",
 };
 
 const ja: Messages = {
@@ -185,8 +232,32 @@ const ja: Messages = {
   supportOptional: "開発支援は任意です。",
   selfUpdatedReload: "K-Tech Update Guard を更新しました。再読み込みします…",
   missingReleaseFiles: "リリースに main.js または manifest.json がありません",
+  missingThemeFiles: "リリースに theme.css または manifest.json がありません",
   installVerifyFailed:
     "{name} のファイルは書きましたが、バージョンはまだ {version} です。",
+  kindPlugin: "プラグイン",
+  kindTheme: "テーマ",
+  releaseNotes: "リリースノート",
+  releaseNotesEmpty: "このバージョンの GitHub リリースノートはありません。",
+  loadNotes: "ノートを読み込む",
+  openRelease: "GitHub で開く",
+  ignoreItem: "今後はこの更新を出さない",
+  ignoredNotice: "今後の確認で {name} を対象外にします。",
+  ignoreList: "無視する項目",
+  ignoreListDesc: "更新として出さない項目です。外せば、また確認します。",
+  ignoreEmpty: "無視している項目はありません。",
+  unignore: "解除",
+  checkThemes: "コミュニティテーマも確認する",
+  checkThemesDesc:
+    "導入済みのコミュニティテーマも確認します（GitHub Release の theme.css）。",
+  rollbackHeading: "直前のファイル",
+  rollbackDesc: "更新の前にファイルを残します。戻すとそれを書き戻します。",
+  rollbackEmpty: "まだバックアップはありません。このツールで更新すると残ります。",
+  rollbackButton: "直前のファイルに戻す",
+  rolledBack: "{name} を直前のファイルに戻しました。",
+  rollbackFailed: "{name} を戻せませんでした: {error}",
+  cmdRollback: "直前のファイルに戻す",
+  noBackup: "この項目の直前ファイルはありません。",
 };
 
 const zhCn: Messages = {
@@ -242,7 +313,30 @@ const zhCn: Messages = {
   supportOptional: "支持开发为可选项。",
   selfUpdatedReload: "K-Tech Update Guard 已更新。正在重新加载…",
   missingReleaseFiles: "该 Release 缺少 main.js 或 manifest.json",
+  missingThemeFiles: "该 Release 缺少 theme.css 或 manifest.json",
   installVerifyFailed: "已写入 {name} 的文件，但安装版本仍为 {version}。",
+  kindPlugin: "插件",
+  kindTheme: "主题",
+  releaseNotes: "发行说明",
+  releaseNotesEmpty: "此版本在 GitHub 上没有发行说明。",
+  loadNotes: "加载说明",
+  openRelease: "在 GitHub 打开",
+  ignoreItem: "以后不再提示",
+  ignoredNotice: "以后检查时将跳过 {name}。",
+  ignoreList: "忽略的项目",
+  ignoreListDesc: "这些项目不会作为更新出现。移除后会再次检查。",
+  ignoreEmpty: "没有忽略的项目。",
+  unignore: "移除",
+  checkThemes: "同时检查社区主题",
+  checkThemesDesc: "也检查已安装的社区主题（来自 GitHub Release 的 theme.css）。",
+  rollbackHeading: "上一份文件",
+  rollbackDesc: "每次更新都会保留上一份文件。还原会写回去。",
+  rollbackEmpty: "还没有备份。用本工具安装更新后会出现。",
+  rollbackButton: "还原上一份文件",
+  rolledBack: "已将 {name} 还原为上一份文件。",
+  rollbackFailed: "无法还原 {name}：{error}",
+  cmdRollback: "还原上一份文件",
+  noBackup: "此项目没有保存上一份文件。",
 };
 
 const zhTw: Messages = {
@@ -298,7 +392,30 @@ const zhTw: Messages = {
   supportOptional: "支持開發為選用。",
   selfUpdatedReload: "K-Tech Update Guard 已更新。正在重新載入…",
   missingReleaseFiles: "此 Release 缺少 main.js 或 manifest.json",
+  missingThemeFiles: "此 Release 缺少 theme.css 或 manifest.json",
   installVerifyFailed: "已寫入 {name} 的檔案，但安裝版本仍為 {version}。",
+  kindPlugin: "外掛",
+  kindTheme: "主題",
+  releaseNotes: "發行說明",
+  releaseNotesEmpty: "此版本在 GitHub 上沒有發行說明。",
+  loadNotes: "載入說明",
+  openRelease: "在 GitHub 開啟",
+  ignoreItem: "以後不再提示",
+  ignoredNotice: "以後檢查時將略過 {name}。",
+  ignoreList: "忽略的項目",
+  ignoreListDesc: "這些項目不會作為更新出現。移除後會再次檢查。",
+  ignoreEmpty: "沒有忽略的項目。",
+  unignore: "移除",
+  checkThemes: "同時檢查社群主題",
+  checkThemesDesc: "也檢查已安裝的社群主題（來自 GitHub Release 的 theme.css）。",
+  rollbackHeading: "上一份檔案",
+  rollbackDesc: "每次更新都會保留上一份檔案。還原會寫回去。",
+  rollbackEmpty: "還沒有備份。用本工具安裝更新後會出現。",
+  rollbackButton: "還原上一份檔案",
+  rolledBack: "已將 {name} 還原為上一份檔案。",
+  rollbackFailed: "無法還原 {name}：{error}",
+  cmdRollback: "還原上一份檔案",
+  noBackup: "此項目沒有儲存上一份檔案。",
 };
 
 const ko: Messages = {
@@ -358,7 +475,30 @@ const ko: Messages = {
   supportOptional: "후원은 선택 사항입니다.",
   selfUpdatedReload: "K-Tech Update Guard가 업데이트되었습니다. 다시 불러오는 중…",
   missingReleaseFiles: "릴리스에 main.js 또는 manifest.json이 없습니다",
+  missingThemeFiles: "릴리스에 theme.css 또는 manifest.json이 없습니다",
   installVerifyFailed: "{name} 파일을 썼지만 설치된 버전은 아직 {version}입니다.",
+  kindPlugin: "플러그인",
+  kindTheme: "테마",
+  releaseNotes: "릴리스 노트",
+  releaseNotesEmpty: "이 버전의 GitHub 릴리스 노트가 없습니다.",
+  loadNotes: "노트 불러오기",
+  openRelease: "GitHub에서 열기",
+  ignoreItem: "다시 제안하지 않음",
+  ignoredNotice: "이후 확인에서 {name}을(를) 건너뜁니다.",
+  ignoreList: "무시할 항목",
+  ignoreListDesc: "업데이트로 표시하지 않습니다. 제거하면 다시 확인합니다.",
+  ignoreEmpty: "무시한 항목이 없습니다.",
+  unignore: "제거",
+  checkThemes: "커뮤니티 테마도 확인",
+  checkThemesDesc: "설치된 커뮤니티 테마도 확인합니다(GitHub Release의 theme.css).",
+  rollbackHeading: "이전 파일",
+  rollbackDesc: "업데이트 전에 파일을 보관합니다. 복원하면 다시 씁니다.",
+  rollbackEmpty: "아직 백업이 없습니다. 이 도구로 업데이트하면 생깁니다.",
+  rollbackButton: "이전 파일로 복원",
+  rolledBack: "{name}을(를) 이전 파일로 복원했습니다.",
+  rollbackFailed: "{name}을(를) 복원할 수 없습니다: {error}",
+  cmdRollback: "이전 파일로 복원",
+  noBackup: "이 항목의 이전 파일이 없습니다.",
 };
 
 const es: Messages = {
@@ -418,8 +558,32 @@ const es: Messages = {
   supportOptional: "El apoyo es opcional.",
   selfUpdatedReload: "K-Tech Update Guard se actualizó. Recargando…",
   missingReleaseFiles: "Falta main.js o manifest.json en la release",
+  missingThemeFiles: "Falta theme.css o manifest.json en la release",
   installVerifyFailed:
     "Se escribieron archivos de {name}, pero la versión instalada sigue siendo {version}.",
+  kindPlugin: "Complemento",
+  kindTheme: "Tema",
+  releaseNotes: "Notas de la versión",
+  releaseNotesEmpty: "No hay notas de GitHub para esta versión.",
+  loadNotes: "Cargar notas",
+  openRelease: "Abrir en GitHub",
+  ignoreItem: "No volver a ofrecer",
+  ignoredNotice: "{name} se omitirá en futuras comprobaciones.",
+  ignoreList: "Elementos ignorados",
+  ignoreListDesc: "No se ofrecen como actualizaciones. Quita uno para volver a comprobarlo.",
+  ignoreEmpty: "No hay nada ignorado.",
+  unignore: "Quitar",
+  checkThemes: "Comprobar temas de la comunidad",
+  checkThemesDesc:
+    "También comprueba los temas comunitarios instalados (theme.css de GitHub Releases).",
+  rollbackHeading: "Archivos anteriores",
+  rollbackDesc: "Cada actualización guarda los archivos previos. Restaurar los escribe de nuevo.",
+  rollbackEmpty: "Aún no hay copias. Aparecen al instalar una actualización con esta herramienta.",
+  rollbackButton: "Restaurar archivos anteriores",
+  rolledBack: "Se restauraron los archivos anteriores de {name}.",
+  rollbackFailed: "No se pudo restaurar {name}: {error}",
+  cmdRollback: "Restaurar archivos anteriores",
+  noBackup: "No hay archivos anteriores guardados para este elemento.",
 };
 
 const de: Messages = {
@@ -479,8 +643,32 @@ const de: Messages = {
   supportOptional: "Unterstützung ist optional.",
   selfUpdatedReload: "K-Tech Update Guard wurde aktualisiert. Wird neu geladen…",
   missingReleaseFiles: "Release enthält kein main.js oder manifest.json",
+  missingThemeFiles: "Release enthält kein theme.css oder manifest.json",
   installVerifyFailed:
     "Dateien für {name} wurden geschrieben, aber die installierte Version ist noch {version}.",
+  kindPlugin: "Plugin",
+  kindTheme: "Theme",
+  releaseNotes: "Release-Hinweise",
+  releaseNotesEmpty: "Keine GitHub-Release-Hinweise für diese Version.",
+  loadNotes: "Hinweise laden",
+  openRelease: "Auf GitHub öffnen",
+  ignoreItem: "Nicht mehr anbieten",
+  ignoredNotice: "{name} wird bei künftigen Prüfungen übersprungen.",
+  ignoreList: "Ignorierte Einträge",
+  ignoreListDesc: "Diese werden nicht als Updates angeboten. Entfernen, um sie wieder zu prüfen.",
+  ignoreEmpty: "Nichts wird ignoriert.",
+  unignore: "Entfernen",
+  checkThemes: "Community-Themes prüfen",
+  checkThemesDesc:
+    "Prüft auch installierte Community-Themes (theme.css von GitHub Releases).",
+  rollbackHeading: "Vorherige Dateien",
+  rollbackDesc: "Jedes Update behält die vorherigen Dateien. Wiederherstellen schreibt sie zurück.",
+  rollbackEmpty: "Noch keine Sicherung. Sie entsteht nach einem Update mit diesem Tool.",
+  rollbackButton: "Vorherige Dateien wiederherstellen",
+  rolledBack: "Vorherige Dateien für {name} wiederhergestellt.",
+  rollbackFailed: "{name} konnte nicht wiederhergestellt werden: {error}",
+  cmdRollback: "Vorherige Dateien wiederherstellen",
+  noBackup: "Keine vorherigen Dateien für diesen Eintrag gespeichert.",
 };
 
 const fr: Messages = {
@@ -541,8 +729,32 @@ const fr: Messages = {
   supportOptional: "Le soutien est facultatif.",
   selfUpdatedReload: "K-Tech Update Guard a été mis à jour. Rechargement…",
   missingReleaseFiles: "La release n’a pas main.js ou manifest.json",
+  missingThemeFiles: "La release n’a pas theme.css ou manifest.json",
   installVerifyFailed:
     "Les fichiers de {name} ont été écrits, mais la version installée est encore {version}.",
+  kindPlugin: "Extension",
+  kindTheme: "Thème",
+  releaseNotes: "Notes de version",
+  releaseNotesEmpty: "Pas de notes GitHub pour cette version.",
+  loadNotes: "Charger les notes",
+  openRelease: "Ouvrir sur GitHub",
+  ignoreItem: "Ne plus proposer",
+  ignoredNotice: "{name} sera ignoré lors des prochaines vérifications.",
+  ignoreList: "Éléments ignorés",
+  ignoreListDesc: "Ils ne sont pas proposés en mise à jour. Retirez-en un pour le revérifier.",
+  ignoreEmpty: "Rien n’est ignoré.",
+  unignore: "Retirer",
+  checkThemes: "Vérifier les thèmes communautaires",
+  checkThemesDesc:
+    "Vérifie aussi les thèmes communautaires installés (theme.css des GitHub Releases).",
+  rollbackHeading: "Fichiers précédents",
+  rollbackDesc: "Chaque mise à jour conserve les fichiers précédents. Restaurer les réécrit.",
+  rollbackEmpty: "Pas encore de copie. Elle apparaît après une mise à jour avec cet outil.",
+  rollbackButton: "Restaurer les fichiers précédents",
+  rolledBack: "Fichiers précédents restaurés pour {name}.",
+  rollbackFailed: "Impossible de restaurer {name} : {error}",
+  cmdRollback: "Restaurer les fichiers précédents",
+  noBackup: "Aucun fichier précédent enregistré pour cet élément.",
 };
 
 const pt: Messages = {
@@ -602,8 +814,32 @@ const pt: Messages = {
   supportOptional: "O apoio é opcional.",
   selfUpdatedReload: "O K-Tech Update Guard foi atualizado. Recarregando…",
   missingReleaseFiles: "A release não tem main.js ou manifest.json",
+  missingThemeFiles: "A release não tem theme.css ou manifest.json",
   installVerifyFailed:
     "Os arquivos de {name} foram gravados, mas a versão instalada ainda é {version}.",
+  kindPlugin: "Plugin",
+  kindTheme: "Tema",
+  releaseNotes: "Notas da versão",
+  releaseNotesEmpty: "Não há notas no GitHub para esta versão.",
+  loadNotes: "Carregar notas",
+  openRelease: "Abrir no GitHub",
+  ignoreItem: "Não oferecer de novo",
+  ignoredNotice: "{name} será omitido nas próximas verificações.",
+  ignoreList: "Itens ignorados",
+  ignoreListDesc: "Não são oferecidos como atualização. Remova um para verificá-lo de novo.",
+  ignoreEmpty: "Nada está ignorado.",
+  unignore: "Remover",
+  checkThemes: "Verificar temas da comunidade",
+  checkThemesDesc:
+    "Também verifica temas da comunidade instalados (theme.css dos GitHub Releases).",
+  rollbackHeading: "Arquivos anteriores",
+  rollbackDesc: "Cada atualização guarda os arquivos anteriores. Restaurar os grava de volta.",
+  rollbackEmpty: "Ainda não há cópias. Elas aparecem após instalar uma atualização com esta ferramenta.",
+  rollbackButton: "Restaurar arquivos anteriores",
+  rolledBack: "Arquivos anteriores de {name} restaurados.",
+  rollbackFailed: "Não foi possível restaurar {name}: {error}",
+  cmdRollback: "Restaurar arquivos anteriores",
+  noBackup: "Não há arquivos anteriores salvos para este item.",
 };
 
 const ru: Messages = {
@@ -664,8 +900,32 @@ const ru: Messages = {
   supportOptional: "Поддержка необязательна.",
   selfUpdatedReload: "K-Tech Update Guard обновлён. Перезагрузка…",
   missingReleaseFiles: "В релизе нет main.js или manifest.json",
+  missingThemeFiles: "В релизе нет theme.css или manifest.json",
   installVerifyFailed:
     "Файлы {name} записаны, но установленная версия всё ещё {version}.",
+  kindPlugin: "Плагин",
+  kindTheme: "Тема",
+  releaseNotes: "Заметки к выпуску",
+  releaseNotesEmpty: "Нет заметок GitHub для этой версии.",
+  loadNotes: "Загрузить заметки",
+  openRelease: "Открыть на GitHub",
+  ignoreItem: "Больше не предлагать",
+  ignoredNotice: "{name} будет пропускаться при следующих проверках.",
+  ignoreList: "Игнорируемые элементы",
+  ignoreListDesc: "Они не предлагаются как обновления. Уберите, чтобы проверять снова.",
+  ignoreEmpty: "Ничего не игнорируется.",
+  unignore: "Убрать",
+  checkThemes: "Проверять темы сообщества",
+  checkThemesDesc:
+    "Также проверять установленные темы сообщества (theme.css из GitHub Releases).",
+  rollbackHeading: "Предыдущие файлы",
+  rollbackDesc: "Каждое обновление сохраняет прежние файлы. Восстановление записывает их обратно.",
+  rollbackEmpty: "Пока нет копий. Они появляются после обновления этим инструментом.",
+  rollbackButton: "Восстановить предыдущие файлы",
+  rolledBack: "Предыдущие файлы {name} восстановлены.",
+  rollbackFailed: "Не удалось восстановить {name}: {error}",
+  cmdRollback: "Восстановить предыдущие файлы",
+  noBackup: "Для этого элемента нет сохранённых предыдущих файлов.",
 };
 
 const TABLES: Record<Locale, Messages> = {

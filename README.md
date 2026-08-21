@@ -26,9 +26,12 @@ UI languages: English, Japanese, Simplified Chinese, Traditional Chinese, Korean
 - Talks to GitHub at that moment (not a third-party server)
 - If nothing is new: a dialog says there are no updates
 - If there are updates: shows the count, checkboxes, Select all, then installs only what you chose
-- Installs GitHub Release files (`main.js`, `manifest.json`, `styles.css`) — the same artifacts the official updater uses
+- Installs GitHub Release files for plugins (`main.js`, `manifest.json`, `styles.css`) and for themes (`theme.css`, `manifest.json`)
 - Updating K-Tech Update Guard itself writes files without disabling the running instance, then reloads
-- Optional wait-after-release, hide betas, skip disabled items
+- Ignore an item so it is not offered again; remove it from the list in Settings
+- Each update keeps the previous files; restore them from Settings or **Restore previous files**
+- Release notes in the update dialog, with a GitHub link
+- Optional wait-after-release, hide betas, skip disabled items, check community themes
 - Lazy Loader: read its settings so delayed items are not treated as disabled (other wait strategies are in Settings)
 
 ### What it does not do
@@ -72,9 +75,12 @@ MIT
 - 確認の瞬間に GitHub を見に行く（第三者サーバーには送りません）
 - 更新がなければ「今のところ更新はありません」
 - あれば件数とチェック（すべて選択可）。選んだものだけ入れます
-- 入れるファイルは GitHub Release の `main.js` / `manifest.json` / `styles.css`（本体の更新と同じ系統）
+- プラグインは GitHub Release の `main.js` / `manifest.json` / `styles.css`、テーマは `theme.css` / `manifest.json`
 - 自分自身を更新するときは無効化せずファイルを書いてから再読み込みします
-- 公開からの待機日数、ベータ非表示、無効項目の除外
+- 無視リスト（今後出さない）。設定から解除
+- 更新前のファイルを残し、設定またはコマンド **直前のファイルに戻す** で復元
+- 更新ダイアログでリリースノート（GitHub へのリンク付き）
+- 公開からの待機日数、ベータ非表示、無効項目の除外、コミュニティテーマの確認
 - Lazy Loader 利用時は、そちらの設定を読んで遅延読み込みを無効と誤らない（他の待ち方も設定にあります）
 
 画面は次の10言語です。英語、日本語、簡体中国語、繁体中国語、韓国語、スペイン語、ドイツ語、フランス語、ポルトガル語、ロシア語。
