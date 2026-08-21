@@ -79,12 +79,31 @@ async function fetchJson(url, token = "") {
   }
   return { status: res.status, json, text };
 }
+function downloadHeaders(token) {
+  const headers = {
+    "User-Agent": USER_AGENT
+  };
+  const trimmed = token.trim();
+  if (trimmed) {
+    headers.Authorization = `Bearer ${trimmed}`;
+  }
+  return headers;
+}
+function githubLatestFileUrl(repo, fileName) {
+  return `https://github.com/${repo}/releases/latest/download/${fileName}`;
+}
+function defaultReleaseAssets(repo) {
+  return [
+    { name: "main.js", downloadUrl: githubLatestFileUrl(repo, "main.js") },
+    { name: "manifest.json", downloadUrl: githubLatestFileUrl(repo, "manifest.json") },
+    { name: "styles.css", downloadUrl: githubLatestFileUrl(repo, "styles.css") }
+  ];
+}
 async function fetchText(url, token = "") {
-  var _a;
   const res = await (0, import_obsidian.requestUrl)({
     url,
     method: "GET",
-    headers: authHeaders(token),
+    headers: downloadHeaders(token),
     throw: false
   });
   if (res.status === 403) {
@@ -92,7 +111,23 @@ async function fetchText(url, token = "") {
     if (remaining === "0") throw new RateLimitError();
   }
   if (res.status < 200 || res.status >= 300) return null;
-  return (_a = res.text) != null ? _a : null;
+  if (res.text) return res.text;
+  const buf = res.arrayBuffer;
+  if (buf && buf.byteLength) {
+    return new TextDecoder("utf-8").decode(buf);
+  }
+  return null;
+}
+async function fetchLatestManifest(repo, token = "") {
+  const text = await fetchText(githubLatestFileUrl(repo, "manifest.json"), token);
+  if (!text || /^\s*</.test(text)) return null;
+  try {
+    const json = JSON.parse(text);
+    const version = String(json.version || "").trim();
+    return version ? { version } : null;
+  } catch (e) {
+    return null;
+  }
 }
 async function fetchLatestRelease(repo, token = "") {
   const { status, json } = await fetchJson(
@@ -255,7 +290,7 @@ var en = {
   alreadyChecking: "Already checking",
   statusChecking: "Checking\u2026",
   checkingNotice: "Checking for updates\u2026",
-  rateLimitedLong: "GitHub rate limit reached. Add a token in settings, or try again later.",
+  rateLimitedLong: "GitHub rate limit reached. The official community installer uses the same GitHub limit. Add a token in settings, or wait about an hour.",
   statusUpToDate: "Up to date",
   statusError: "Error",
   checkFailed: "Check failed: {error}",
@@ -264,6 +299,7 @@ var en = {
   ignoreDisabled: "Ignore disabled items",
   ignoreDisabledDesc: "With Lazy Loader, only items it marks Disabled are skipped. Delayed items stay included.",
   hideBeta: "Hide beta versions",
+  hideBetaDesc: "Hides GitHub prereleases and releases whose name or notes say beta, alpha, or rc.",
   daysWait: "Days to wait after a release",
   daysWaitDesc: "0 shows a release as soon as this check finds it.",
   lazyHandling: "Delayed loading",
@@ -275,10 +311,11 @@ var en = {
   waitSeconds: "Wait seconds",
   waitTimeout: "Wait timeout (seconds)",
   githubToken: "GitHub token (optional)",
-  githubTokenDesc: "Unauthenticated checks are about 60 GitHub requests per hour. A PAT is stored locally only and is never sent to a K-Tech server.",
+  githubTokenDesc: "Without a token, GitHub allows about 60 API requests per hour for this network \u2014 shared with the official community installer. A PAT is stored locally only and is never sent to a K-Tech server.",
   supportOptional: "Support is optional.",
   selfUpdatedReload: "K-Tech Update Guard was updated. Reloading\u2026",
-  missingReleaseFiles: "Release is missing main.js or manifest.json"
+  missingReleaseFiles: "Release is missing main.js or manifest.json",
+  installVerifyFailed: "Wrote files for {name}, but the installed version is still {version}."
 };
 var ja = {
   thanksInstall: "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059",
@@ -305,7 +342,7 @@ var ja = {
   alreadyChecking: "\u3059\u3067\u306B\u78BA\u8A8D\u4E2D\u3067\u3059",
   statusChecking: "\u78BA\u8A8D\u4E2D\u2026",
   checkingNotice: "\u66F4\u65B0\u3092\u78BA\u8A8D\u3057\u3066\u3044\u307E\u3059\u2026",
-  rateLimitedLong: "GitHub \u306E\u56DE\u6570\u5236\u9650\u306B\u9054\u3057\u307E\u3057\u305F\u3002\u8A2D\u5B9A\u306E\u30C8\u30FC\u30AF\u30F3\u3092\u4F7F\u3046\u304B\u3001\u6642\u9593\u3092\u304A\u3044\u3066\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+  rateLimitedLong: "GitHub \u306E\u56DE\u6570\u5236\u9650\u306B\u9054\u3057\u307E\u3057\u305F\u3002\u516C\u5F0F\u306E\u30B3\u30DF\u30E5\u30CB\u30C6\u30A3\u30D7\u30E9\u30B0\u30A4\u30F3\u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3082\u540C\u3058\u5236\u9650\u3067\u3059\u3002\u8A2D\u5B9A\u306B\u30C8\u30FC\u30AF\u30F3\u3092\u5165\u308C\u308B\u304B\u30011\u6642\u9593\u307B\u3069\u5F85\u3063\u3066\u304F\u3060\u3055\u3044\u3002",
   statusUpToDate: "\u6700\u65B0",
   statusError: "\u30A8\u30E9\u30FC",
   checkFailed: "\u78BA\u8A8D\u306B\u5931\u6557\u3057\u307E\u3057\u305F: {error}",
@@ -314,6 +351,7 @@ var ja = {
   ignoreDisabled: "\u7121\u52B9\u306E\u9805\u76EE\u306F\u5BFE\u8C61\u5916",
   ignoreDisabledDesc: "Lazy Loader \u304C\u3042\u308B\u3068\u304D\u306F\u3001\u305D\u3061\u3089\u306E\u300C\u7121\u52B9\u300D\u3060\u3051\u3092\u7121\u52B9\u3068\u307F\u306A\u3057\u307E\u3059\uFF08\u9045\u5EF6\u8AAD\u307F\u8FBC\u307F\u306F\u5BFE\u8C61\u306B\u6B8B\u3057\u307E\u3059\uFF09\u3002",
   hideBeta: "\u30D9\u30FC\u30BF\u7248\u3092\u51FA\u3055\u306A\u3044",
+  hideBetaDesc: "GitHub \u306E\u30D7\u30EC\u30EA\u30EA\u30FC\u30B9\u3068\u3001\u540D\u524D\u3084\u30EA\u30EA\u30FC\u30B9\u30CE\u30FC\u30C8\u306B beta / alpha / rc \u3068\u3042\u308B\u3082\u306E\u3092\u51FA\u3055\u306A\u3044\u3002",
   daysWait: "\u516C\u958B\u304B\u3089\u4F55\u65E5\u5F85\u3064\u304B",
   daysWaitDesc: "0 \u306A\u3089\u3001\u78BA\u8A8D\u3057\u305F\u6642\u70B9\u306E\u6700\u65B0\u3092\u51FA\u3057\u307E\u3059\u3002",
   lazyHandling: "\u9045\u5EF6\u8AAD\u307F\u8FBC\u307F\u306E\u6271\u3044",
@@ -325,10 +363,11 @@ var ja = {
   waitSeconds: "\u5F85\u6A5F\u79D2\u6570",
   waitTimeout: "\u5F85\u3061\u6642\u9593\u306E\u4E0A\u9650\uFF08\u79D2\uFF09",
   githubToken: "GitHub \u30C8\u30FC\u30AF\u30F3\uFF08\u4EFB\u610F\uFF09",
-  githubTokenDesc: "\u672A\u8A8D\u8A3C\u306F1\u6642\u9593\u3042\u305F\u308A\u7D0460\u56DE\u3067\u3059\u3002\u591A\u3044\u3068\u304D\u306F PAT \u3092\u30ED\u30FC\u30AB\u30EB\u306B\u3060\u3051\u4FDD\u5B58\u3057\u307E\u3059\u3002\u4F5C\u8005\u30B5\u30FC\u30D0\u30FC\u306B\u306F\u9001\u308A\u307E\u305B\u3093\u3002",
+  githubTokenDesc: "\u30C8\u30FC\u30AF\u30F3\u306A\u3057\u306F\u3001\u3053\u306E\u56DE\u7DDA\u3067 GitHub API \u304C1\u6642\u9593\u3042\u305F\u308A\u7D0460\u56DE\u3067\u3059\u3002\u516C\u5F0F\u306E\u30B3\u30DF\u30E5\u30CB\u30C6\u30A3\u5C0E\u5165\u3082\u540C\u3058\u56DE\u6570\u3067\u3059\u3002PAT \u306F\u7AEF\u672B\u5185\u306E\u307F\u3067\u3001\u4F5C\u8005\u30B5\u30FC\u30D0\u30FC\u306B\u306F\u9001\u308A\u307E\u305B\u3093\u3002",
   supportOptional: "\u958B\u767A\u652F\u63F4\u306F\u4EFB\u610F\u3067\u3059\u3002",
   selfUpdatedReload: "K-Tech Update Guard \u3092\u66F4\u65B0\u3057\u307E\u3057\u305F\u3002\u518D\u8AAD\u307F\u8FBC\u307F\u3057\u307E\u3059\u2026",
-  missingReleaseFiles: "\u30EA\u30EA\u30FC\u30B9\u306B main.js \u307E\u305F\u306F manifest.json \u304C\u3042\u308A\u307E\u305B\u3093"
+  missingReleaseFiles: "\u30EA\u30EA\u30FC\u30B9\u306B main.js \u307E\u305F\u306F manifest.json \u304C\u3042\u308A\u307E\u305B\u3093",
+  installVerifyFailed: "{name} \u306E\u30D5\u30A1\u30A4\u30EB\u306F\u66F8\u304D\u307E\u3057\u305F\u304C\u3001\u30D0\u30FC\u30B8\u30E7\u30F3\u306F\u307E\u3060 {version} \u3067\u3059\u3002"
 };
 var zhCn = {
   thanksInstall: "\u611F\u8C22\u5B89\u88C5\uFF01",
@@ -364,6 +403,7 @@ var zhCn = {
   ignoreDisabled: "\u5FFD\u7565\u5DF2\u7981\u7528\u9879",
   ignoreDisabledDesc: "\u82E5\u4F7F\u7528 Lazy Loader\uFF0C\u4EC5\u5C06\u5176\u4E2D\u6807\u8BB0\u4E3A\u7981\u7528\u7684\u9879\u76EE\u6392\u9664\u3002\u5EF6\u8FDF\u52A0\u8F7D\u7684\u9879\u76EE\u4ECD\u4F1A\u5305\u542B\u3002",
   hideBeta: "\u9690\u85CF\u6D4B\u8BD5\u7248",
+  hideBetaDesc: "\u9690\u85CF GitHub \u9884\u53D1\u5E03\uFF0C\u4EE5\u53CA\u540D\u79F0\u6216\u8BF4\u660E\u4E2D\u542B beta / alpha / rc \u7684\u7248\u672C\u3002",
   daysWait: "\u53D1\u5E03\u540E\u7B49\u5F85\u5929\u6570",
   daysWaitDesc: "0 \u8868\u793A\u672C\u6B21\u68C0\u67E5\u4E00\u53D1\u73B0\u5C31\u663E\u793A\u3002",
   lazyHandling: "\u5EF6\u8FDF\u52A0\u8F7D\u5904\u7406",
@@ -378,7 +418,8 @@ var zhCn = {
   githubTokenDesc: "\u672A\u8BA4\u8BC1\u65F6\u6BCF\u5C0F\u65F6\u7EA6 60 \u6B21\u8BF7\u6C42\u3002PAT \u53EA\u4FDD\u5B58\u5728\u672C\u5730\uFF0C\u4E0D\u4F1A\u53D1\u5230 K-Tech \u670D\u52A1\u5668\u3002",
   supportOptional: "\u652F\u6301\u5F00\u53D1\u4E3A\u53EF\u9009\u9879\u3002",
   selfUpdatedReload: "K-Tech Update Guard \u5DF2\u66F4\u65B0\u3002\u6B63\u5728\u91CD\u65B0\u52A0\u8F7D\u2026",
-  missingReleaseFiles: "\u8BE5 Release \u7F3A\u5C11 main.js \u6216 manifest.json"
+  missingReleaseFiles: "\u8BE5 Release \u7F3A\u5C11 main.js \u6216 manifest.json",
+  installVerifyFailed: "\u5DF2\u5199\u5165 {name} \u7684\u6587\u4EF6\uFF0C\u4F46\u5B89\u88C5\u7248\u672C\u4ECD\u4E3A {version}\u3002"
 };
 var zhTw = {
   thanksInstall: "\u611F\u8B1D\u5B89\u88DD\uFF01",
@@ -414,6 +455,7 @@ var zhTw = {
   ignoreDisabled: "\u5FFD\u7565\u5DF2\u505C\u7528\u9805\u76EE",
   ignoreDisabledDesc: "\u82E5\u4F7F\u7528 Lazy Loader\uFF0C\u53EA\u6392\u9664\u5176\u4E2D\u6A19\u8A18\u70BA\u505C\u7528\u7684\u9805\u76EE\u3002\u5EF6\u9072\u8F09\u5165\u7684\u9805\u76EE\u4ECD\u6703\u5305\u542B\u3002",
   hideBeta: "\u96B1\u85CF\u6E2C\u8A66\u7248",
+  hideBetaDesc: "\u96B1\u85CF GitHub \u9810\u767C\u5E03\uFF0C\u4EE5\u53CA\u540D\u7A31\u6216\u8AAA\u660E\u4E2D\u542B beta / alpha / rc \u7684\u7248\u672C\u3002",
   daysWait: "\u767C\u5E03\u5F8C\u7B49\u5F85\u5929\u6578",
   daysWaitDesc: "0 \u8868\u793A\u9019\u6B21\u6AA2\u67E5\u4E00\u767C\u73FE\u5C31\u986F\u793A\u3002",
   lazyHandling: "\u5EF6\u9072\u8F09\u5165\u8655\u7406",
@@ -428,7 +470,8 @@ var zhTw = {
   githubTokenDesc: "\u672A\u9A57\u8B49\u6642\u6BCF\u5C0F\u6642\u7D04 60 \u6B21\u8ACB\u6C42\u3002PAT \u53EA\u5B58\u5728\u672C\u6A5F\uFF0C\u4E0D\u6703\u9001\u5230 K-Tech \u4F3A\u670D\u5668\u3002",
   supportOptional: "\u652F\u6301\u958B\u767C\u70BA\u9078\u7528\u3002",
   selfUpdatedReload: "K-Tech Update Guard \u5DF2\u66F4\u65B0\u3002\u6B63\u5728\u91CD\u65B0\u8F09\u5165\u2026",
-  missingReleaseFiles: "\u6B64 Release \u7F3A\u5C11 main.js \u6216 manifest.json"
+  missingReleaseFiles: "\u6B64 Release \u7F3A\u5C11 main.js \u6216 manifest.json",
+  installVerifyFailed: "\u5DF2\u5BEB\u5165 {name} \u7684\u6A94\u6848\uFF0C\u4F46\u5B89\u88DD\u7248\u672C\u4ECD\u70BA {version}\u3002"
 };
 var ko = {
   thanksInstall: "\uC124\uCE58\uD574 \uC8FC\uC154\uC11C \uAC10\uC0AC\uD569\uB2C8\uB2E4!",
@@ -464,6 +507,7 @@ var ko = {
   ignoreDisabled: "\uBE44\uD65C\uC131 \uD56D\uBAA9 \uC81C\uC678",
   ignoreDisabledDesc: "Lazy Loader\uAC00 \uC788\uC73C\uBA74 \uAC70\uAE30\uC11C \uBE44\uD65C\uC131\uC73C\uB85C \uD45C\uC2DC\uD55C \uD56D\uBAA9\uB9CC \uAC74\uB108\uB701\uB2C8\uB2E4. \uC9C0\uC5F0 \uB85C\uB4DC \uD56D\uBAA9\uC740 \uD3EC\uD568\uB429\uB2C8\uB2E4.",
   hideBeta: "\uBCA0\uD0C0 \uBC84\uC804 \uC228\uAE30\uAE30",
+  hideBetaDesc: "GitHub \uC0AC\uC804 \uB9B4\uB9AC\uC2A4\uC640 \uC774\uB984\xB7\uB178\uD2B8\uC5D0 beta / alpha / rc\uAC00 \uC788\uB294 \uBC84\uC804\uC744 \uC228\uAE41\uB2C8\uB2E4.",
   daysWait: "\uCD9C\uC2DC \uD6C4 \uB300\uAE30 \uC77C\uC218",
   daysWaitDesc: "0\uC774\uBA74 \uC774\uBC88 \uD655\uC778\uC5D0\uC11C \uBC1C\uACAC\uB418\uB294 \uC989\uC2DC \uD45C\uC2DC\uD569\uB2C8\uB2E4.",
   lazyHandling: "\uC9C0\uC5F0 \uB85C\uB4DC \uCC98\uB9AC",
@@ -478,7 +522,8 @@ var ko = {
   githubTokenDesc: "\uC778\uC99D \uC5C6\uC774\uB294 \uC2DC\uAC04\uB2F9 \uC57D 60\uD68C\uC785\uB2C8\uB2E4. PAT\uB294 \uAE30\uAE30\uC5D0\uB9CC \uC800\uC7A5\uB418\uBA70 K-Tech \uC11C\uBC84\uB85C \uBCF4\uB0B4\uC9C0\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
   supportOptional: "\uD6C4\uC6D0\uC740 \uC120\uD0DD \uC0AC\uD56D\uC785\uB2C8\uB2E4.",
   selfUpdatedReload: "K-Tech Update Guard\uAC00 \uC5C5\uB370\uC774\uD2B8\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uBD88\uB7EC\uC624\uB294 \uC911\u2026",
-  missingReleaseFiles: "\uB9B4\uB9AC\uC2A4\uC5D0 main.js \uB610\uB294 manifest.json\uC774 \uC5C6\uC2B5\uB2C8\uB2E4"
+  missingReleaseFiles: "\uB9B4\uB9AC\uC2A4\uC5D0 main.js \uB610\uB294 manifest.json\uC774 \uC5C6\uC2B5\uB2C8\uB2E4",
+  installVerifyFailed: "{name} \uD30C\uC77C\uC744 \uC37C\uC9C0\uB9CC \uC124\uCE58\uB41C \uBC84\uC804\uC740 \uC544\uC9C1 {version}\uC785\uB2C8\uB2E4."
 };
 var es = {
   thanksInstall: "\xA1Gracias por instalar!",
@@ -514,6 +559,7 @@ var es = {
   ignoreDisabled: "Ignorar desactivados",
   ignoreDisabledDesc: "Con Lazy Loader, solo se omiten los marcados como Disabled. Los de carga diferida se incluyen.",
   hideBeta: "Ocultar versiones beta",
+  hideBetaDesc: "Oculta prereleases de GitHub y versiones cuyo nombre o notas dicen beta, alpha o rc.",
   daysWait: "D\xEDas de espera tras el lanzamiento",
   daysWaitDesc: "0 muestra una versi\xF3n en cuanto esta comprobaci\xF3n la encuentra.",
   lazyHandling: "Carga diferida",
@@ -528,7 +574,8 @@ var es = {
   githubTokenDesc: "Sin autenticar hay unas 60 peticiones por hora. El PAT se guarda solo en local, no se env\xEDa a un servidor de K-Tech.",
   supportOptional: "El apoyo es opcional.",
   selfUpdatedReload: "K-Tech Update Guard se actualiz\xF3. Recargando\u2026",
-  missingReleaseFiles: "Falta main.js o manifest.json en la release"
+  missingReleaseFiles: "Falta main.js o manifest.json en la release",
+  installVerifyFailed: "Se escribieron archivos de {name}, pero la versi\xF3n instalada sigue siendo {version}."
 };
 var de = {
   thanksInstall: "Danke f\xFCrs Installieren!",
@@ -564,6 +611,7 @@ var de = {
   ignoreDisabled: "Deaktivierte ignorieren",
   ignoreDisabledDesc: "Mit Lazy Loader gelten nur dort als Disabled markierte Eintr\xE4ge als deaktiviert. Verz\xF6gerte bleiben dabei.",
   hideBeta: "Beta-Versionen ausblenden",
+  hideBetaDesc: "Blendet GitHub-Prereleases und Versionen aus, deren Name oder Notizen beta, alpha oder rc enthalten.",
   daysWait: "Tage nach Ver\xF6ffentlichung warten",
   daysWaitDesc: "0 zeigt ein Release, sobald diese Pr\xFCfung es findet.",
   lazyHandling: "Verz\xF6gertes Laden",
@@ -578,7 +626,8 @@ var de = {
   githubTokenDesc: "Ohne Anmeldung etwa 60 Anfragen pro Stunde. Ein PAT bleibt nur lokal und geht nicht an einen K-Tech-Server.",
   supportOptional: "Unterst\xFCtzung ist optional.",
   selfUpdatedReload: "K-Tech Update Guard wurde aktualisiert. Wird neu geladen\u2026",
-  missingReleaseFiles: "Release enth\xE4lt kein main.js oder manifest.json"
+  missingReleaseFiles: "Release enth\xE4lt kein main.js oder manifest.json",
+  installVerifyFailed: "Dateien f\xFCr {name} wurden geschrieben, aber die installierte Version ist noch {version}."
 };
 var fr = {
   thanksInstall: "Merci pour l\u2019installation !",
@@ -614,6 +663,7 @@ var fr = {
   ignoreDisabled: "Ignorer les \xE9l\xE9ments d\xE9sactiv\xE9s",
   ignoreDisabledDesc: "Avec Lazy Loader, seuls ceux marqu\xE9s Disabled sont omis. Les chargements diff\xE9r\xE9s restent inclus.",
   hideBeta: "Masquer les versions b\xEAta",
+  hideBetaDesc: "Masque les prereleases GitHub et les versions dont le nom ou les notes indiquent beta, alpha ou rc.",
   daysWait: "Jours d\u2019attente apr\xE8s publication",
   daysWaitDesc: "0 affiche une version d\xE8s que cette v\xE9rification la trouve.",
   lazyHandling: "Chargement diff\xE9r\xE9",
@@ -628,7 +678,8 @@ var fr = {
   githubTokenDesc: "Sans authentification, environ 60 requ\xEAtes par heure. Un PAT reste local et n\u2019est pas envoy\xE9 \xE0 un serveur K-Tech.",
   supportOptional: "Le soutien est facultatif.",
   selfUpdatedReload: "K-Tech Update Guard a \xE9t\xE9 mis \xE0 jour. Rechargement\u2026",
-  missingReleaseFiles: "La release n\u2019a pas main.js ou manifest.json"
+  missingReleaseFiles: "La release n\u2019a pas main.js ou manifest.json",
+  installVerifyFailed: "Les fichiers de {name} ont \xE9t\xE9 \xE9crits, mais la version install\xE9e est encore {version}."
 };
 var pt = {
   thanksInstall: "Obrigado por instalar!",
@@ -664,6 +715,7 @@ var pt = {
   ignoreDisabled: "Ignorar desativados",
   ignoreDisabledDesc: "Com o Lazy Loader, s\xF3 os marcados como Disabled s\xE3o omitidos. Os de carga atrasada entram na lista.",
   hideBeta: "Ocultar vers\xF5es beta",
+  hideBetaDesc: "Oculta prereleases do GitHub e vers\xF5es cujo nome ou notas dizem beta, alpha ou rc.",
   daysWait: "Dias de espera ap\xF3s o lan\xE7amento",
   daysWaitDesc: "0 mostra uma vers\xE3o assim que esta verifica\xE7\xE3o a encontra.",
   lazyHandling: "Carga atrasada",
@@ -678,7 +730,8 @@ var pt = {
   githubTokenDesc: "Sem autentica\xE7\xE3o, cerca de 60 pedidos por hora. O PAT fica s\xF3 no dispositivo e n\xE3o vai para um servidor K-Tech.",
   supportOptional: "O apoio \xE9 opcional.",
   selfUpdatedReload: "O K-Tech Update Guard foi atualizado. Recarregando\u2026",
-  missingReleaseFiles: "A release n\xE3o tem main.js ou manifest.json"
+  missingReleaseFiles: "A release n\xE3o tem main.js ou manifest.json",
+  installVerifyFailed: "Os arquivos de {name} foram gravados, mas a vers\xE3o instalada ainda \xE9 {version}."
 };
 var ru = {
   thanksInstall: "\u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0443!",
@@ -714,6 +767,7 @@ var ru = {
   ignoreDisabled: "\u041F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u0442\u044C \u043E\u0442\u043A\u043B\u044E\u0447\u0451\u043D\u043D\u044B\u0435",
   ignoreDisabledDesc: "\u0421 Lazy Loader \u043F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u044E\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u043C\u0435\u0447\u0435\u043D\u043D\u044B\u0435 Disabled. \u041E\u0442\u043B\u043E\u0436\u0435\u043D\u043D\u0430\u044F \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u043E\u0441\u0442\u0430\u0451\u0442\u0441\u044F \u0432 \u0441\u043F\u0438\u0441\u043A\u0435.",
   hideBeta: "\u0421\u043A\u0440\u044B\u0432\u0430\u0442\u044C \u0431\u0435\u0442\u0430-\u0432\u0435\u0440\u0441\u0438\u0438",
+  hideBetaDesc: "\u0421\u043A\u0440\u044B\u0432\u0430\u0435\u0442 GitHub prerelease \u0438 \u0432\u0435\u0440\u0441\u0438\u0438, \u0432 \u0438\u043C\u0435\u043D\u0438 \u0438\u043B\u0438 \u0437\u0430\u043C\u0435\u0442\u043A\u0430\u0445 \u043A\u043E\u0442\u043E\u0440\u044B\u0445 \u0435\u0441\u0442\u044C beta, alpha \u0438\u043B\u0438 rc.",
   daysWait: "\u0414\u043D\u0435\u0439 \u043E\u0436\u0438\u0434\u0430\u043D\u0438\u044F \u043F\u043E\u0441\u043B\u0435 \u0432\u044B\u043F\u0443\u0441\u043A\u0430",
   daysWaitDesc: "0 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442 \u0432\u044B\u043F\u0443\u0441\u043A \u0441\u0440\u0430\u0437\u0443, \u043A\u0430\u043A \u0442\u043E\u043B\u044C\u043A\u043E \u044D\u0442\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u0435\u0433\u043E \u043D\u0430\u0439\u0434\u0451\u0442.",
   lazyHandling: "\u041E\u0442\u043B\u043E\u0436\u0435\u043D\u043D\u0430\u044F \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0430",
@@ -728,7 +782,8 @@ var ru = {
   githubTokenDesc: "\u0411\u0435\u0437 \u0432\u0445\u043E\u0434\u0430 \u043E\u043A\u043E\u043B\u043E 60 \u0437\u0430\u043F\u0440\u043E\u0441\u043E\u0432 \u0432 \u0447\u0430\u0441. PAT \u0445\u0440\u0430\u043D\u0438\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u043E \u0438 \u043D\u0435 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442\u0441\u044F \u043D\u0430 \u0441\u0435\u0440\u0432\u0435\u0440 K-Tech.",
   supportOptional: "\u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430 \u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u0430.",
   selfUpdatedReload: "K-Tech Update Guard \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D. \u041F\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
-  missingReleaseFiles: "\u0412 \u0440\u0435\u043B\u0438\u0437\u0435 \u043D\u0435\u0442 main.js \u0438\u043B\u0438 manifest.json"
+  missingReleaseFiles: "\u0412 \u0440\u0435\u043B\u0438\u0437\u0435 \u043D\u0435\u0442 main.js \u0438\u043B\u0438 manifest.json",
+  installVerifyFailed: "\u0424\u0430\u0439\u043B\u044B {name} \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u044B, \u043D\u043E \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u0430\u044F \u0432\u0435\u0440\u0441\u0438\u044F \u0432\u0441\u0451 \u0435\u0449\u0451 {version}."
 };
 var TABLES = {
   en,
@@ -816,8 +871,8 @@ function compareVersions(a, b) {
 function isNewerVersion(remote, local) {
   return compareVersions(remote, local) > 0;
 }
-function isBetaVersion(version, releaseName) {
-  const text = `${normalizeVersion(version)} ${releaseName || ""}`.toLowerCase();
+function isBetaVersion(version, releaseName, notes) {
+  const text = `${normalizeVersion(version)} ${releaseName || ""} ${notes || ""}`.toLowerCase();
   return /\b(alpha|beta|rc|pre|preview|canary|nightly)\b/.test(text);
 }
 function daysSince(iso) {
@@ -827,18 +882,26 @@ function daysSince(iso) {
 }
 
 // src/check.ts
-function listInstalled(app) {
+async function listInstalled(app) {
   const api = getPluginsApi(app);
   const configDir = app.vault.configDir;
   const out = [];
   for (const id of Object.keys(api.manifests)) {
     const manifest = api.manifests[id];
     if (!manifest) continue;
+    const dir = `${configDir}/plugins/${manifest.id}`;
+    let version = manifest.version || "0";
+    try {
+      const raw = await app.vault.adapter.read(`${dir}/manifest.json`);
+      const parsed = JSON.parse(raw);
+      if (parsed.version) version = parsed.version;
+    } catch (e) {
+    }
     out.push({
       id: manifest.id,
       name: manifest.name || manifest.id,
-      version: manifest.version || "0",
-      dir: `${configDir}/plugins/${manifest.id}`,
+      version,
+      dir,
       enabled: api.enabledPlugins.has(manifest.id)
     });
   }
@@ -847,11 +910,11 @@ function listInstalled(app) {
 }
 async function checkForUpdates(app, settings) {
   const lazy = await readLazySettings(app);
-  let installed = listInstalled(app);
+  let installed = await listInstalled(app);
   const api = getPluginsApi(app);
   const pending = pendingLazyIds(installed, lazy, api.plugins);
   await applyLazyWait(app, settings, pending, lazy);
-  installed = listInstalled(app);
+  installed = await listInstalled(app);
   const registry = await loadCommunityRegistry();
   const candidates = installed.filter(
     (plugin) => !isEffectivelyDisabled(plugin, settings, lazy)
@@ -861,24 +924,60 @@ async function checkForUpdates(app, settings) {
   let skipped = installed.length - candidates.length;
   let rateLimited = false;
   await mapPool(candidates, CHECK_CONCURRENCY, async (plugin) => {
-    if (rateLimited) return;
     const repo = plugin.id === PLUGIN_ID ? OWN_REPO : registry.get(plugin.id);
     if (!repo) {
       skipped += 1;
       return;
     }
     try {
-      const release = await fetchLatestRelease(repo, settings.githubToken);
-      if (!release) {
-        skipped += 1;
-        return;
+      const remote = await fetchLatestManifest(repo, settings.githubToken);
+      let latestVersion = remote ? normalizeVersion(remote.version) : "";
+      let tagName = latestVersion;
+      let notes = "";
+      let publishedAt = "";
+      let prerelease = false;
+      let assets = defaultReleaseAssets(repo);
+      if (!latestVersion) {
+        if (rateLimited) {
+          skipped += 1;
+          return;
+        }
+        const release = await fetchLatestRelease(repo, settings.githubToken);
+        if (!release) {
+          skipped += 1;
+          return;
+        }
+        latestVersion = normalizeVersion(release.tagName);
+        tagName = release.tagName;
+        notes = release.notes || "";
+        publishedAt = release.publishedAt;
+        prerelease = release.prerelease;
+        if (release.assets.length) assets = release.assets;
       }
-      const latestVersion = normalizeVersion(release.tagName);
       if (!isNewerVersion(latestVersion, plugin.version)) return;
-      const beta = release.prerelease || isBetaVersion(latestVersion, release.name);
+      if (!notes && !rateLimited && (settings.ignoreBeta || settings.daysUntilShow > 0)) {
+        try {
+          const release = await fetchLatestRelease(repo, settings.githubToken);
+          if (release) {
+            tagName = release.tagName || tagName;
+            notes = release.notes || "";
+            publishedAt = release.publishedAt;
+            prerelease = release.prerelease;
+            if (release.assets.length) assets = release.assets;
+          }
+        } catch (err) {
+          if (err instanceof RateLimitError) {
+            rateLimited = true;
+            errors.push(t("rateLimitedLong"));
+          } else {
+            throw err;
+          }
+        }
+      }
+      const beta = prerelease || isBetaVersion(latestVersion, tagName, notes);
       if (settings.ignoreBeta && beta) return;
-      const daysOld = daysSince(release.publishedAt);
-      const tooNew = settings.daysUntilShow > 0 && daysOld < settings.daysUntilShow;
+      const daysOld = publishedAt ? daysSince(publishedAt) : 0;
+      const tooNew = settings.daysUntilShow > 0 && Boolean(publishedAt) && daysOld < settings.daysUntilShow;
       if (tooNew) return;
       updates.push({
         id: plugin.id,
@@ -886,12 +985,12 @@ async function checkForUpdates(app, settings) {
         currentVersion: plugin.version,
         latestVersion,
         repo,
-        tagName: release.tagName,
-        publishedAt: release.publishedAt,
-        notes: release.notes || "",
+        tagName,
+        publishedAt,
+        notes,
         isBeta: beta,
         daysOld,
-        assets: release.assets,
+        assets,
         tooNew: false
       });
     } catch (err) {
@@ -969,7 +1068,12 @@ async function installUpdate(app, update, token) {
   }
   const mainJs = await fetchText(mainUrl, token);
   const manifest = await fetchText(manifestUrl, token);
-  if (!mainJs || !manifest) {
+  if (!mainJs || !manifest || /^\s*</.test(mainJs) || /^\s*</.test(manifest)) {
+    throw new Error(t("missingReleaseFiles"));
+  }
+  try {
+    JSON.parse(manifest);
+  } catch (e) {
     throw new Error(t("missingReleaseFiles"));
   }
   let styles = null;
@@ -996,6 +1100,29 @@ async function installUpdate(app, update, token) {
   await app.vault.adapter.write(`${dir}/manifest.json`, manifest);
   if (styles != null && styles.length) {
     await app.vault.adapter.write(`${dir}/styles.css`, styles);
+  }
+  let writtenVersion = "";
+  try {
+    const writtenRaw = await app.vault.adapter.read(`${dir}/manifest.json`);
+    writtenVersion = String(
+      JSON.parse(writtenRaw).version || ""
+    ).trim();
+  } catch (e) {
+    writtenVersion = "";
+  }
+  const actual = normalizeVersion(writtenVersion);
+  const expected = normalizeVersion(update.latestVersion);
+  if (!actual || actual !== expected && !isNewerVersion(actual, update.currentVersion)) {
+    throw new Error(
+      t("installVerifyFailed", {
+        name: update.name,
+        version: writtenVersion || update.currentVersion
+      })
+    );
+  }
+  const installedManifest = api.manifests[update.id];
+  if (installedManifest) {
+    installedManifest.version = writtenVersion;
   }
   if (self) return;
   if (typeof api.loadManifests === "function") {
@@ -1180,7 +1307,7 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
         await this.host.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("hideBeta")).addToggle((toggle) => {
+    new import_obsidian4.Setting(containerEl).setName(t("hideBeta")).setDesc(t("hideBetaDesc")).addToggle((toggle) => {
       toggle.setValue(settings.ignoreBeta);
       toggle.onChange(async (value) => {
         settings.ignoreBeta = value;

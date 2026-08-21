@@ -4,6 +4,7 @@ import { fetchText, RateLimitError } from "./github";
 import { t } from "./i18n";
 import { getPluginsApi } from "./plugins-api";
 import type { AvailableUpdate } from "./types";
+import { isNewerVersion, normalizeVersion } from "./version";
 
 function assetUrl(update: AvailableUpdate, fileName: string): string | null {
   const found = update.assets.find((a) => a.name === fileName);
@@ -38,7 +39,12 @@ export async function installUpdate(
   }
   const mainJs = await fetchText(mainUrl, token);
   const manifest = await fetchText(manifestUrl, token);
-  if (!mainJs || !manifest) {
+  if (!mainJs || !manifest || /^\s*</.test(mainJs) || /^\s*</.test(manifest)) {
+    throw new Error(t("missingReleaseFiles"));
+  }
+  try {
+    JSON.parse(manifest);
+  } catch {
     throw new Error(t("missingReleaseFiles"));
   }
   let styles: string | null = null;
@@ -67,6 +73,33 @@ export async function installUpdate(
   await app.vault.adapter.write(`${dir}/manifest.json`, manifest);
   if (styles != null && styles.length) {
     await app.vault.adapter.write(`${dir}/styles.css`, styles);
+  }
+
+  let writtenVersion = "";
+  try {
+    const writtenRaw = await app.vault.adapter.read(`${dir}/manifest.json`);
+    writtenVersion = String(
+      (JSON.parse(writtenRaw) as { version?: string }).version || ""
+    ).trim();
+  } catch {
+    writtenVersion = "";
+  }
+  const actual = normalizeVersion(writtenVersion);
+  const expected = normalizeVersion(update.latestVersion);
+  if (
+    !actual ||
+    (actual !== expected && !isNewerVersion(actual, update.currentVersion))
+  ) {
+    throw new Error(
+      t("installVerifyFailed", {
+        name: update.name,
+        version: writtenVersion || update.currentVersion,
+      })
+    );
+  }
+  const installedManifest = api.manifests[update.id];
+  if (installedManifest) {
+    installedManifest.version = writtenVersion;
   }
 
   if (self) return;

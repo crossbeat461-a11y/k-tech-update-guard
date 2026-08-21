@@ -56,11 +56,34 @@ export async function fetchJson<T>(
   return { status: res.status, json, text };
 }
 
+function downloadHeaders(token: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    "User-Agent": USER_AGENT,
+  };
+  const trimmed = token.trim();
+  if (trimmed) {
+    headers.Authorization = `Bearer ${trimmed}`;
+  }
+  return headers;
+}
+
+export function githubLatestFileUrl(repo: string, fileName: string): string {
+  return `https://github.com/${repo}/releases/latest/download/${fileName}`;
+}
+
+export function defaultReleaseAssets(repo: string): ReleaseAsset[] {
+  return [
+    { name: "main.js", downloadUrl: githubLatestFileUrl(repo, "main.js") },
+    { name: "manifest.json", downloadUrl: githubLatestFileUrl(repo, "manifest.json") },
+    { name: "styles.css", downloadUrl: githubLatestFileUrl(repo, "styles.css") },
+  ];
+}
+
 export async function fetchText(url: string, token = ""): Promise<string | null> {
   const res = await requestUrl({
     url,
     method: "GET",
-    headers: authHeaders(token),
+    headers: downloadHeaders(token),
     throw: false,
   });
   if (res.status === 403) {
@@ -68,7 +91,27 @@ export async function fetchText(url: string, token = ""): Promise<string | null>
     if (remaining === "0") throw new RateLimitError();
   }
   if (res.status < 200 || res.status >= 300) return null;
-  return res.text ?? null;
+  if (res.text) return res.text;
+  const buf = res.arrayBuffer;
+  if (buf && buf.byteLength) {
+    return new TextDecoder("utf-8").decode(buf);
+  }
+  return null;
+}
+
+export async function fetchLatestManifest(
+  repo: string,
+  token = ""
+): Promise<{ version: string } | null> {
+  const text = await fetchText(githubLatestFileUrl(repo, "manifest.json"), token);
+  if (!text || /^\s*</.test(text)) return null;
+  try {
+    const json = JSON.parse(text) as { version?: string };
+    const version = String(json.version || "").trim();
+    return version ? { version } : null;
+  } catch {
+    return null;
+  }
 }
 
 interface GitHubReleaseJson {

@@ -1,7 +1,7 @@
 {
   "id": "k-tech-update-guard",
   "name": "K-Tech Update Guard",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "minAppVersion": "1.5.0",
   "description": "Check community updates on demand, then install only the ones you select.",
   "author": "K-Tech Studio",
