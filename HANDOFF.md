@@ -11,7 +11,7 @@
 | Author | K-Tech Studio |
 | Repo | `crossbeat461-a11y/k-tech-update-guard` |
 | LP | https://k-tech-update-guard-lp.vercel.app/ |
-| Version | 0.1.3 |
+| Version | 0.2.0 |
 
 ## Privacy
 
@@ -42,13 +42,14 @@ Enable in Settings → Community plugins → K-Tech Update Guard.
 ```
 src/main.ts          Commands, ribbon, status bar, BMC, check entry
 src/i18n.ts          10 locales
-src/check.ts         Compare installed manifests vs GitHub latest
+src/check.ts         Compare installed manifests vs GitHub latest (plugins + themes)
 src/github.ts        requestUrl + rate limit
-src/registry.ts      community-plugins.json → id/repo
+src/registry.ts      community-plugins.json / community-css-themes.json → repo
 src/lazy.ts          Lazy Loader data.json + wait strategies
-src/installer.ts     Write release files; self-update without disable
-src/modals.ts        No-updates / select-and-update
-src/settings.ts      Options + BMC button
+src/backup.ts        Previous files before an update
+src/installer.ts     Write release files; self-update without disable; rollback
+src/modals.ts        No-updates / select-and-update / release notes / rollback
+src/settings.ts      Options, ignore list, backups, BMC button
 src/funding.ts       Install + update BMC dialog
 src/version.ts       Semver compare
 ```
@@ -60,11 +61,15 @@ src/version.ts       Semver compare
 - [ ] Check with no updates → dialog
 - [ ] Check with updates → count, Select all, install selected
 - [ ] Self-update does not disable the running instance; app reloads after
-- [ ] UI follows Obsidian language among the 10 locales
+- [ ] Ignore an item from the update dialog; it is gone on the next check until removed in Settings
+- [ ] Update keeps previous files; Restore previous files writes them back
+- [ ] Release notes expand in the update dialog
+- [ ] Installed community themes appear in the check when the setting is on
+- [ ] UI follows the app language among the 10 locales
 
 ## Release
 
-Tag `0.1.3` → GitHub Release with main.js / manifest.json / styles.css.
+Tag `0.2.0` → GitHub Release with main.js / manifest.json / styles.css.
 
 Do not include "Obsidian" in `manifest.json` description.
 Do not include "Plugin" in `manifest.json` name.

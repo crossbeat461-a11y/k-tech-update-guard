@@ -3,12 +3,13 @@ import { checkForUpdates } from "./check";
 import { PLUGIN_NAME } from "./constants";
 import { openFundingModal } from "./funding";
 import { t } from "./i18n";
-import { NoUpdatesModal, UpdatesModal } from "./modals";
+import { NoUpdatesModal, RollbackModal, UpdatesModal } from "./modals";
 import { GuardSettingTab } from "./settings";
 import {
   DEFAULT_SETTINGS,
   parseStorage,
   toStorage,
+  type AvailableUpdate,
   type GuardSettings,
 } from "./types";
 
@@ -37,6 +38,16 @@ export default class KTechUpdateGuard extends Plugin {
       name: t("cmdCheck"),
       callback: () => {
         void this.runCheck();
+      },
+    });
+
+    this.addCommand({
+      id: "restore-previous-files",
+      name: t("cmdRollback"),
+      callback: () => {
+        new RollbackModal(this.app, () => {
+          this.setStatus(t("statusCheck"));
+        }).open();
       },
     });
 
@@ -81,6 +92,15 @@ export default class KTechUpdateGuard extends Plugin {
     await this.saveSettings();
   }
 
+  private async ignoreUpdate(update: AvailableUpdate): Promise<void> {
+    if (this.settings.ignoredItems.some((item) => item.key === update.key)) return;
+    this.settings.ignoredItems = [
+      ...this.settings.ignoredItems,
+      { key: update.key, name: update.name },
+    ];
+    await this.saveSettings();
+  }
+
   async runCheck(): Promise<void> {
     if (this.checking) {
       new Notice(t("alreadyChecking"));
@@ -107,6 +127,7 @@ export default class KTechUpdateGuard extends Plugin {
         result.updates,
         this.settings.githubToken,
         extra,
+        (update) => this.ignoreUpdate(update),
         () => {
           this.setStatus(t("statusCheck"));
         }
