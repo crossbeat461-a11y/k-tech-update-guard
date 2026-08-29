@@ -134,12 +134,11 @@ export class GuardSettingTab extends PluginSettingTab {
         },
       },
       {
-        type: "list",
-        heading: t("ignoreList"),
-        emptyState: t("ignoreEmpty"),
-        items: settings.ignoredItems.map((item) => ({ name: item.name })),
-        onDelete: (index) => {
-          void this.removeIgnored(index);
+        name: t("ignoreList"),
+        desc: t("ignoreListDesc"),
+        render: (setting) => {
+          const mount = setting.settingEl.createDiv({ cls: "ktech-guard-ignore-list" });
+          this.renderIgnoreList(mount);
         },
       },
       {
@@ -203,11 +202,31 @@ export class GuardSettingTab extends PluginSettingTab {
     await this.host.saveSettings();
   }
 
-  private async removeIgnored(index: number): Promise<void> {
+  private renderIgnoreList(mount: HTMLElement): void {
+    mount.empty();
     const settings = this.host.settings;
-    settings.ignoredItems = settings.ignoredItems.filter((_, i) => i !== index);
+    if (!settings.ignoredItems.length) {
+      mount.createEl("p", {
+        text: t("ignoreEmpty"),
+        cls: "ktech-guard-muted",
+      });
+      return;
+    }
+    for (const item of settings.ignoredItems) {
+      new Setting(mount).setName(item.name).addButton((button) => {
+        button.setButtonText(t("unignore"));
+        button.onClick(() => {
+          void this.removeIgnored(item.key, mount);
+        });
+      });
+    }
+  }
+
+  private async removeIgnored(key: string, mount: HTMLElement): Promise<void> {
+    const settings = this.host.settings;
+    settings.ignoredItems = settings.ignoredItems.filter((row) => row.key !== key);
     await this.host.saveSettings();
-    this.update();
+    this.renderIgnoreList(mount);
   }
 
   /** Fallback for app versions older than 1.13.0. */

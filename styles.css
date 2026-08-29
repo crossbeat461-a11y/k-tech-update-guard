@@ -59,6 +59,7 @@
   font-size: 0.9em;
 }
 
-.ktech-guard-backups {
+.ktech-guard-backups,
+.ktech-guard-ignore-list {
   margin-bottom: 1em;
 }

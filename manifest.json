@@ -1,7 +1,7 @@
 {
   "id": "k-tech-update-guard",
   "name": "K-Tech Update Guard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minAppVersion": "1.8.7",
   "description": "Check community plugin and theme updates on demand, then install only the ones you select.",
   "author": "K-Tech Studio",

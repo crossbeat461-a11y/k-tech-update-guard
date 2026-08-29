@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1
+
+- Settings: the ignore list no longer calls the 1.13.0-only `SettingTab.update()`, which was newer than the declared `minAppVersion` (1.8.7). It now re-renders itself, like the rollback list.
+
+### 日本語
+
+- 設定の無視リストが、宣言した `minAppVersion`（1.8.7）より新しい `SettingTab.update()` を呼んでいた点を修正。ロールバック一覧と同じ方式で自分で再描画するようにした
+
 ## 1.0.0
 
 - Community review warnings: use `getLanguage()`, typed `mapPool` buffer, typed settings merge, and `getSettingDefinitions()` for settings search
