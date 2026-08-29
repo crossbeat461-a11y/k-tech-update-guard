@@ -1,8 +1,8 @@
 {
   "id": "k-tech-update-guard",
   "name": "K-Tech Update Guard",
-  "version": "0.2.0",
-  "minAppVersion": "1.5.0",
+  "version": "1.0.0",
+  "minAppVersion": "1.8.7",
   "description": "Check community plugin and theme updates on demand, then install only the ones you select.",
   "author": "K-Tech Studio",
   "authorUrl": "https://github.com/crossbeat461-a11y",

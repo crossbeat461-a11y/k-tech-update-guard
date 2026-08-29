@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.0
+
+- Community review warnings: use `getLanguage()`, typed `mapPool` buffer, typed settings merge, and `getSettingDefinitions()` for settings search
+- `minAppVersion` is 1.8.7 (`getLanguage`)
+- First stable release
+
+### 日本語
+
+- コミュニティ審査の警告に対応：`getLanguage()`、型付きの `mapPool` バッファ、型付きの設定マージ、設定検索向けの `getSettingDefinitions()`
+- `minAppVersion` は 1.8.7（`getLanguage`）
+- 最初の安定版
+
 ## 0.2.0
 
 - Ignore list: skip an item on future checks, and remove it again in Settings

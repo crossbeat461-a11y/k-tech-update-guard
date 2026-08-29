@@ -26,7 +26,7 @@ __export(main_exports, {
   default: () => KTechUpdateGuard
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian5 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 
 // src/constants.ts
 var PLUGIN_ID = "k-tech-update-guard";
@@ -305,6 +305,7 @@ async function loadCommunityThemes() {
 }
 
 // src/i18n.ts
+var import_obsidian2 = require("obsidian");
 var en = {
   thanksInstall: "Thanks for installing!",
   updatedTo: "Updated to {version}",
@@ -1070,9 +1071,7 @@ var TABLES = {
 function detectLocale() {
   let raw = "";
   try {
-    raw = String(
-      window.localStorage && window.localStorage.getItem("language") || ""
-    );
+    raw = (0, import_obsidian2.getLanguage)();
   } catch (e) {
   }
   if (!raw) {
@@ -1425,8 +1424,8 @@ async function checkForUpdates(app, settings) {
 }
 
 // src/funding.ts
-var import_obsidian2 = require("obsidian");
-var FundingModal = class extends import_obsidian2.Modal {
+var import_obsidian3 = require("obsidian");
+var FundingModal = class extends import_obsidian3.Modal {
   constructor(app, kind, version) {
     super(app);
     this.kind = kind;
@@ -1461,7 +1460,7 @@ function openFundingModal(app, kind, version) {
 }
 
 // src/modals.ts
-var import_obsidian3 = require("obsidian");
+var import_obsidian4 = require("obsidian");
 
 // src/backup.ts
 var META_FILE = "backup.json";
@@ -1748,7 +1747,7 @@ async function rollbackUpdate(app, key) {
 }
 
 // src/modals.ts
-var NoUpdatesModal = class extends import_obsidian3.Modal {
+var NoUpdatesModal = class extends import_obsidian4.Modal {
   constructor(app, extra) {
     super(app);
     this.extra = extra;
@@ -1775,7 +1774,7 @@ var NoUpdatesModal = class extends import_obsidian3.Modal {
     this.contentEl.empty();
   }
 };
-var UpdatesModal = class extends import_obsidian3.Modal {
+var UpdatesModal = class extends import_obsidian4.Modal {
   constructor(app, updates, token, extra, onIgnore, onDone) {
     super(app);
     this.updates = updates;
@@ -1811,7 +1810,7 @@ var UpdatesModal = class extends import_obsidian3.Modal {
         notes.createEl("li", { text: line });
       }
     }
-    new import_obsidian3.Setting(contentEl).setName(t("selectAll")).addToggle((toggle) => {
+    new import_obsidian4.Setting(contentEl).setName(t("selectAll")).addToggle((toggle) => {
       toggle.setValue(
         this.updates.length > 0 && this.selected.size === this.updates.length
       );
@@ -1842,7 +1841,7 @@ var UpdatesModal = class extends import_obsidian3.Modal {
     const wrap = parent.createDiv({ cls: "ktech-guard-item" });
     const kindLabel = update.kind === "theme" ? t("kindTheme") : t("kindPlugin");
     const beta = update.isBeta ? t("beta") : "";
-    const row = new import_obsidian3.Setting(wrap);
+    const row = new import_obsidian4.Setting(wrap);
     row.setName(update.name);
     row.setDesc(`${kindLabel} \xB7 ${update.currentVersion} \u2192 ${update.latestVersion}${beta}`);
     row.addToggle((toggle) => {
@@ -1881,7 +1880,7 @@ var UpdatesModal = class extends import_obsidian3.Modal {
     if (!open) return;
     const body = notesWrap.createDiv({ cls: "ktech-guard-release-notes" });
     if (update.notes.trim()) {
-      void import_obsidian3.MarkdownRenderer.render(
+      void import_obsidian4.MarkdownRenderer.render(
         this.app,
         update.notes,
         body,
@@ -1919,9 +1918,9 @@ var UpdatesModal = class extends import_obsidian3.Modal {
       }
     } catch (err) {
       if (err instanceof RateLimitError) {
-        new import_obsidian3.Notice(t("rateLimitedShort"));
+        new import_obsidian4.Notice(t("rateLimitedShort"));
       } else {
-        new import_obsidian3.Notice(err instanceof Error ? err.message : String(err));
+        new import_obsidian4.Notice(err instanceof Error ? err.message : String(err));
       }
     } finally {
       this.loadingNotes.delete(update.key);
@@ -1934,7 +1933,7 @@ var UpdatesModal = class extends import_obsidian3.Modal {
     this.updates = this.updates.filter((item) => item.key !== update.key);
     this.selected.delete(update.key);
     this.expanded.delete(update.key);
-    new import_obsidian3.Notice(t("ignoredNotice", { name: update.name }));
+    new import_obsidian4.Notice(t("ignoredNotice", { name: update.name }));
     if (!this.updates.length) {
       this.close();
       this.onDone();
@@ -1946,7 +1945,7 @@ var UpdatesModal = class extends import_obsidian3.Modal {
     if (this.busy) return;
     const chosen = this.updates.filter((u) => this.selected.has(u.key));
     if (!chosen.length) {
-      new import_obsidian3.Notice(t("noneSelected"));
+      new import_obsidian4.Notice(t("noneSelected"));
       return;
     }
     chosen.sort((a, b) => {
@@ -1961,7 +1960,7 @@ var UpdatesModal = class extends import_obsidian3.Modal {
     const failed = [];
     for (const update of chosen) {
       try {
-        new import_obsidian3.Notice(t("updating", { name: update.name }));
+        new import_obsidian4.Notice(t("updating", { name: update.name }));
         await installUpdate(this.app, update, this.token);
         ok += 1;
         if (isSelfUpdate(update.id, update.kind)) selfUpdated = true;
@@ -1978,19 +1977,19 @@ var UpdatesModal = class extends import_obsidian3.Modal {
     this.busy = false;
     this.close();
     if (ok) {
-      new import_obsidian3.Notice(t("updatedCount", { count: ok }));
+      new import_obsidian4.Notice(t("updatedCount", { count: ok }));
     }
     if (failed.length) {
-      new import_obsidian3.Notice(failed.join("\n"), 8e3);
+      new import_obsidian4.Notice(failed.join("\n"), 8e3);
     }
     this.onDone();
     if (selfUpdated) {
-      new import_obsidian3.Notice(t("selfUpdatedReload"));
+      new import_obsidian4.Notice(t("selfUpdatedReload"));
       window.setTimeout(() => reloadObsidian(this.app), 700);
     }
   }
 };
-var RollbackModal = class extends import_obsidian3.Modal {
+var RollbackModal = class extends import_obsidian4.Modal {
   constructor(app, onRestored) {
     super(app);
     this.onRestored = onRestored;
@@ -2018,7 +2017,7 @@ var RollbackModal = class extends import_obsidian3.Modal {
     } else {
       for (const backup of this.backups) {
         const kindLabel = backup.kind === "theme" ? t("kindTheme") : t("kindPlugin");
-        const row = new import_obsidian3.Setting(contentEl);
+        const row = new import_obsidian4.Setting(contentEl);
         row.setName(backup.name);
         row.setDesc(
           `${kindLabel} \xB7 ${backup.toVersion} \u2192 ${backup.fromVersion}`
@@ -2045,15 +2044,15 @@ var RollbackModal = class extends import_obsidian3.Modal {
     this.render();
     try {
       const restored = await rollbackUpdate(this.app, backup.key);
-      new import_obsidian3.Notice(t("rolledBack", { name: restored.name }));
+      new import_obsidian4.Notice(t("rolledBack", { name: restored.name }));
       this.onRestored(restored.id, restored.kind);
       if (isSelfUpdate(restored.id, restored.kind)) {
-        new import_obsidian3.Notice(t("selfUpdatedReload"));
+        new import_obsidian4.Notice(t("selfUpdatedReload"));
         window.setTimeout(() => reloadObsidian(this.app), 700);
       }
       await this.reload();
     } catch (err) {
-      new import_obsidian3.Notice(
+      new import_obsidian4.Notice(
         t("rollbackFailed", {
           name: backup.name,
           error: err instanceof Error ? err.message : String(err)
@@ -2068,47 +2067,224 @@ var RollbackModal = class extends import_obsidian3.Modal {
 };
 
 // src/settings.ts
-var import_obsidian4 = require("obsidian");
-var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
+var import_obsidian5 = require("obsidian");
+var GuardSettingTab = class extends import_obsidian5.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.busyKey = "";
     this.host = plugin;
   }
+  getSettingDefinitions() {
+    const settings = this.host.settings;
+    return [
+      {
+        name: t("checkOnStartup"),
+        desc: t("checkOnStartupDesc"),
+        control: {
+          type: "toggle",
+          key: "checkOnStartup",
+          defaultValue: settings.checkOnStartup
+        }
+      },
+      {
+        name: t("checkThemes"),
+        desc: t("checkThemesDesc"),
+        control: {
+          type: "toggle",
+          key: "checkThemes",
+          defaultValue: settings.checkThemes
+        }
+      },
+      {
+        name: t("ignoreDisabled"),
+        desc: t("ignoreDisabledDesc"),
+        control: {
+          type: "toggle",
+          key: "ignoreDisabled",
+          defaultValue: settings.ignoreDisabled
+        }
+      },
+      {
+        name: t("hideBeta"),
+        desc: t("hideBetaDesc"),
+        control: {
+          type: "toggle",
+          key: "ignoreBeta",
+          defaultValue: settings.ignoreBeta
+        }
+      },
+      {
+        name: t("daysWait"),
+        desc: t("daysWaitDesc"),
+        control: {
+          type: "slider",
+          key: "daysUntilShow",
+          min: 0,
+          max: 14,
+          step: 1,
+          defaultValue: settings.daysUntilShow
+        }
+      },
+      {
+        name: t("lazyHandling"),
+        desc: t("lazyHandlingDesc"),
+        control: {
+          type: "dropdown",
+          key: "lazyStrategy",
+          defaultValue: settings.lazyStrategy,
+          options: {
+            "lazy-config": t("lazyReadConfig"),
+            "wait-loaded": t("lazyWaitLoaded"),
+            "fixed-delay": t("lazyFixedDelay"),
+            none: t("lazyNone")
+          }
+        }
+      },
+      {
+        name: t("waitSeconds"),
+        control: {
+          type: "slider",
+          key: "fixedDelaySeconds",
+          min: 1,
+          max: 30,
+          step: 1,
+          defaultValue: settings.fixedDelaySeconds
+        },
+        visible: () => this.host.settings.lazyStrategy === "fixed-delay"
+      },
+      {
+        name: t("waitTimeout"),
+        control: {
+          type: "slider",
+          key: "waitLoadedTimeoutSeconds",
+          min: 5,
+          max: 60,
+          step: 1,
+          defaultValue: settings.waitLoadedTimeoutSeconds
+        },
+        visible: () => this.host.settings.lazyStrategy === "wait-loaded"
+      },
+      {
+        name: t("githubToken"),
+        desc: t("githubTokenDesc"),
+        render: (setting) => {
+          setting.addText((text) => {
+            text.inputEl.type = "password";
+            text.setPlaceholder("ghp_\u2026");
+            text.setValue(this.host.settings.githubToken);
+            text.onChange((value) => {
+              void this.saveGithubToken(value);
+            });
+          });
+        }
+      },
+      {
+        type: "list",
+        heading: t("ignoreList"),
+        emptyState: t("ignoreEmpty"),
+        items: settings.ignoredItems.map((item) => ({ name: item.name })),
+        onDelete: (index) => {
+          void this.removeIgnored(index);
+        }
+      },
+      {
+        name: t("rollbackHeading"),
+        desc: t("rollbackDesc"),
+        render: (setting) => {
+          const mount = setting.settingEl.createDiv({ cls: "ktech-guard-backups" });
+          void this.renderBackups(mount);
+        }
+      },
+      {
+        name: t("bmc"),
+        desc: t("supportOptional"),
+        action: () => {
+          window.open(FUNDING_URL, "_blank");
+        }
+      }
+    ];
+  }
+  getControlValue(key) {
+    return this.host.settings[key];
+  }
+  async setControlValue(key, value) {
+    const settings = this.host.settings;
+    switch (key) {
+      case "checkOnStartup":
+        settings.checkOnStartup = Boolean(value);
+        break;
+      case "checkThemes":
+        settings.checkThemes = Boolean(value);
+        break;
+      case "ignoreDisabled":
+        settings.ignoreDisabled = Boolean(value);
+        break;
+      case "ignoreBeta":
+        settings.ignoreBeta = Boolean(value);
+        break;
+      case "daysUntilShow":
+        settings.daysUntilShow = Number(value);
+        break;
+      case "lazyStrategy":
+        settings.lazyStrategy = value;
+        break;
+      case "fixedDelaySeconds":
+        settings.fixedDelaySeconds = Number(value);
+        break;
+      case "waitLoadedTimeoutSeconds":
+        settings.waitLoadedTimeoutSeconds = Number(value);
+        break;
+      case "githubToken":
+        settings.githubToken = String(value).trim();
+        break;
+    }
+    await this.host.saveSettings();
+  }
+  async saveGithubToken(value) {
+    this.host.settings.githubToken = value.trim();
+    await this.host.saveSettings();
+  }
+  async removeIgnored(index) {
+    const settings = this.host.settings;
+    settings.ignoredItems = settings.ignoredItems.filter((_, i) => i !== index);
+    await this.host.saveSettings();
+    this.update();
+  }
+  /** Fallback for app versions older than 1.13.0. */
   display() {
     const { containerEl } = this;
     const settings = this.host.settings;
     containerEl.empty();
-    new import_obsidian4.Setting(containerEl).setName(PLUGIN_NAME).setHeading();
-    new import_obsidian4.Setting(containerEl).setName(t("checkOnStartup")).setDesc(t("checkOnStartupDesc")).addToggle((toggle) => {
+    new import_obsidian5.Setting(containerEl).setName(PLUGIN_NAME).setHeading();
+    new import_obsidian5.Setting(containerEl).setName(t("checkOnStartup")).setDesc(t("checkOnStartupDesc")).addToggle((toggle) => {
       toggle.setValue(settings.checkOnStartup);
       toggle.onChange(async (value) => {
         settings.checkOnStartup = value;
         await this.host.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("checkThemes")).setDesc(t("checkThemesDesc")).addToggle((toggle) => {
+    new import_obsidian5.Setting(containerEl).setName(t("checkThemes")).setDesc(t("checkThemesDesc")).addToggle((toggle) => {
       toggle.setValue(settings.checkThemes);
       toggle.onChange(async (value) => {
         settings.checkThemes = value;
         await this.host.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("ignoreDisabled")).setDesc(t("ignoreDisabledDesc")).addToggle((toggle) => {
+    new import_obsidian5.Setting(containerEl).setName(t("ignoreDisabled")).setDesc(t("ignoreDisabledDesc")).addToggle((toggle) => {
       toggle.setValue(settings.ignoreDisabled);
       toggle.onChange(async (value) => {
         settings.ignoreDisabled = value;
         await this.host.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("hideBeta")).setDesc(t("hideBetaDesc")).addToggle((toggle) => {
+    new import_obsidian5.Setting(containerEl).setName(t("hideBeta")).setDesc(t("hideBetaDesc")).addToggle((toggle) => {
       toggle.setValue(settings.ignoreBeta);
       toggle.onChange(async (value) => {
         settings.ignoreBeta = value;
         await this.host.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("daysWait")).setDesc(t("daysWaitDesc")).addSlider((slider) => {
+    new import_obsidian5.Setting(containerEl).setName(t("daysWait")).setDesc(t("daysWaitDesc")).addSlider((slider) => {
       slider.setLimits(0, 14, 1);
       slider.setValue(settings.daysUntilShow);
       slider.onChange(async (value) => {
@@ -2116,7 +2292,7 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
         await this.host.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("lazyHandling")).setDesc(t("lazyHandlingDesc")).addDropdown((dropdown) => {
+    new import_obsidian5.Setting(containerEl).setName(t("lazyHandling")).setDesc(t("lazyHandlingDesc")).addDropdown((dropdown) => {
       dropdown.addOption("lazy-config", t("lazyReadConfig"));
       dropdown.addOption("wait-loaded", t("lazyWaitLoaded"));
       dropdown.addOption("fixed-delay", t("lazyFixedDelay"));
@@ -2129,7 +2305,7 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
       });
     });
     if (settings.lazyStrategy === "fixed-delay") {
-      new import_obsidian4.Setting(containerEl).setName(t("waitSeconds")).addSlider((slider) => {
+      new import_obsidian5.Setting(containerEl).setName(t("waitSeconds")).addSlider((slider) => {
         slider.setLimits(1, 30, 1);
         slider.setValue(settings.fixedDelaySeconds);
         slider.onChange(async (value) => {
@@ -2139,7 +2315,7 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
       });
     }
     if (settings.lazyStrategy === "wait-loaded") {
-      new import_obsidian4.Setting(containerEl).setName(t("waitTimeout")).addSlider((slider) => {
+      new import_obsidian5.Setting(containerEl).setName(t("waitTimeout")).addSlider((slider) => {
         slider.setLimits(5, 60, 1);
         slider.setValue(settings.waitLoadedTimeoutSeconds);
         slider.onChange(async (value) => {
@@ -2148,7 +2324,7 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
         });
       });
     }
-    new import_obsidian4.Setting(containerEl).setName(t("githubToken")).setDesc(t("githubTokenDesc")).addText((text) => {
+    new import_obsidian5.Setting(containerEl).setName(t("githubToken")).setDesc(t("githubTokenDesc")).addText((text) => {
       text.inputEl.type = "password";
       text.setPlaceholder("ghp_\u2026");
       text.setValue(settings.githubToken);
@@ -2157,8 +2333,8 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
         await this.host.saveSettings();
       });
     });
-    new import_obsidian4.Setting(containerEl).setName(t("ignoreList")).setHeading();
-    new import_obsidian4.Setting(containerEl).setName("").setDesc(t("ignoreListDesc"));
+    new import_obsidian5.Setting(containerEl).setName(t("ignoreList")).setHeading();
+    new import_obsidian5.Setting(containerEl).setName("").setDesc(t("ignoreListDesc"));
     if (!settings.ignoredItems.length) {
       containerEl.createEl("p", {
         text: t("ignoreEmpty"),
@@ -2166,7 +2342,7 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
       });
     } else {
       for (const item of settings.ignoredItems) {
-        new import_obsidian4.Setting(containerEl).setName(item.name).addButton((button) => {
+        new import_obsidian5.Setting(containerEl).setName(item.name).addButton((button) => {
           button.setButtonText(t("unignore"));
           button.onClick(async () => {
             settings.ignoredItems = settings.ignoredItems.filter(
@@ -2178,10 +2354,10 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
         });
       }
     }
-    new import_obsidian4.Setting(containerEl).setName(t("rollbackHeading")).setHeading();
-    new import_obsidian4.Setting(containerEl).setName("").setDesc(t("rollbackDesc"));
+    new import_obsidian5.Setting(containerEl).setName(t("rollbackHeading")).setHeading();
+    new import_obsidian5.Setting(containerEl).setName("").setDesc(t("rollbackDesc"));
     const backupMount = containerEl.createDiv({ cls: "ktech-guard-backups" });
-    new import_obsidian4.Setting(containerEl).setName(t("bmc")).setDesc(t("supportOptional")).addButton((button) => {
+    new import_obsidian5.Setting(containerEl).setName(t("bmc")).setDesc(t("supportOptional")).addButton((button) => {
       button.setButtonText(t("bmc"));
       button.setCta();
       button.onClick(() => {
@@ -2202,7 +2378,7 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
     }
     for (const backup of backups) {
       const kindLabel = backup.kind === "theme" ? t("kindTheme") : t("kindPlugin");
-      new import_obsidian4.Setting(mount).setName(backup.name).setDesc(`${kindLabel} \xB7 ${backup.toVersion} \u2192 ${backup.fromVersion}`).addButton((button) => {
+      new import_obsidian5.Setting(mount).setName(backup.name).setDesc(`${kindLabel} \xB7 ${backup.toVersion} \u2192 ${backup.fromVersion}`).addButton((button) => {
         button.setButtonText(t("rollbackButton"));
         button.setDisabled(this.busyKey === backup.key);
         button.onClick(() => {
@@ -2216,14 +2392,14 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
     this.display();
     try {
       await rollbackUpdate(this.app, key);
-      new import_obsidian4.Notice(t("rolledBack", { name }));
+      new import_obsidian5.Notice(t("rolledBack", { name }));
       if (isSelfUpdate(id, kind) || id === PLUGIN_ID) {
-        new import_obsidian4.Notice(t("selfUpdatedReload"));
+        new import_obsidian5.Notice(t("selfUpdatedReload"));
         window.setTimeout(() => reloadObsidian(this.app), 700);
         return;
       }
     } catch (err) {
-      new import_obsidian4.Notice(
+      new import_obsidian5.Notice(
         t("rollbackFailed", {
           name,
           error: err instanceof Error ? err.message : String(err)
@@ -2237,7 +2413,7 @@ var GuardSettingTab = class extends import_obsidian4.PluginSettingTab {
 };
 
 // src/main.ts
-var KTechUpdateGuard = class extends import_obsidian5.Plugin {
+var KTechUpdateGuard = class extends import_obsidian6.Plugin {
   constructor() {
     super(...arguments);
     this.settings = DEFAULT_SETTINGS;
@@ -2315,12 +2491,12 @@ var KTechUpdateGuard = class extends import_obsidian5.Plugin {
   }
   async runCheck() {
     if (this.checking) {
-      new import_obsidian5.Notice(t("alreadyChecking"));
+      new import_obsidian6.Notice(t("alreadyChecking"));
       return;
     }
     this.checking = true;
     this.setStatus(t("statusChecking"));
-    new import_obsidian5.Notice(t("checkingNotice"));
+    new import_obsidian6.Notice(t("checkingNotice"));
     try {
       const result = await checkForUpdates(this.app, this.settings);
       const extra = [];
@@ -2344,7 +2520,7 @@ var KTechUpdateGuard = class extends import_obsidian5.Plugin {
       ).open();
     } catch (err) {
       this.setStatus(t("statusError"));
-      new import_obsidian5.Notice(
+      new import_obsidian6.Notice(
         t("checkFailed", {
           error: err instanceof Error ? err.message : String(err)
         }),

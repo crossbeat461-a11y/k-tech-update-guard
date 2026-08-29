@@ -1,3 +1,5 @@
+import { getLanguage } from "obsidian";
+
 export type Locale =
   | "en"
   | "ja"
@@ -944,9 +946,7 @@ const TABLES: Record<Locale, Messages> = {
 function detectLocale(): Locale {
   let raw = "";
   try {
-    raw = String(
-      (window.localStorage && window.localStorage.getItem("language")) || ""
-    );
+    raw = getLanguage();
   } catch {
     /* ignore */
   }

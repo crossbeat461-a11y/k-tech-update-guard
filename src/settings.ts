@@ -1,4 +1,11 @@
-import { App, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
+import {
+  App,
+  Notice,
+  Plugin,
+  PluginSettingTab,
+  Setting,
+  type SettingDefinitionItem,
+} from "obsidian";
 import { listBackups } from "./backup";
 import { FUNDING_URL, PLUGIN_ID, PLUGIN_NAME } from "./constants";
 import { t } from "./i18n";
@@ -10,6 +17,8 @@ interface GuardPluginHost {
   saveSettings(): Promise<void>;
 }
 
+type ControlKey = Exclude<keyof GuardSettings, "ignoredItems">;
+
 export class GuardSettingTab extends PluginSettingTab {
   private readonly host: GuardPluginHost;
   private busyKey = "";
@@ -19,6 +28,189 @@ export class GuardSettingTab extends PluginSettingTab {
     this.host = plugin;
   }
 
+  getSettingDefinitions(): SettingDefinitionItem<ControlKey>[] {
+    const settings = this.host.settings;
+
+    return [
+      {
+        name: t("checkOnStartup"),
+        desc: t("checkOnStartupDesc"),
+        control: {
+          type: "toggle",
+          key: "checkOnStartup",
+          defaultValue: settings.checkOnStartup,
+        },
+      },
+      {
+        name: t("checkThemes"),
+        desc: t("checkThemesDesc"),
+        control: {
+          type: "toggle",
+          key: "checkThemes",
+          defaultValue: settings.checkThemes,
+        },
+      },
+      {
+        name: t("ignoreDisabled"),
+        desc: t("ignoreDisabledDesc"),
+        control: {
+          type: "toggle",
+          key: "ignoreDisabled",
+          defaultValue: settings.ignoreDisabled,
+        },
+      },
+      {
+        name: t("hideBeta"),
+        desc: t("hideBetaDesc"),
+        control: {
+          type: "toggle",
+          key: "ignoreBeta",
+          defaultValue: settings.ignoreBeta,
+        },
+      },
+      {
+        name: t("daysWait"),
+        desc: t("daysWaitDesc"),
+        control: {
+          type: "slider",
+          key: "daysUntilShow",
+          min: 0,
+          max: 14,
+          step: 1,
+          defaultValue: settings.daysUntilShow,
+        },
+      },
+      {
+        name: t("lazyHandling"),
+        desc: t("lazyHandlingDesc"),
+        control: {
+          type: "dropdown",
+          key: "lazyStrategy",
+          defaultValue: settings.lazyStrategy,
+          options: {
+            "lazy-config": t("lazyReadConfig"),
+            "wait-loaded": t("lazyWaitLoaded"),
+            "fixed-delay": t("lazyFixedDelay"),
+            none: t("lazyNone"),
+          },
+        },
+      },
+      {
+        name: t("waitSeconds"),
+        control: {
+          type: "slider",
+          key: "fixedDelaySeconds",
+          min: 1,
+          max: 30,
+          step: 1,
+          defaultValue: settings.fixedDelaySeconds,
+        },
+        visible: () => this.host.settings.lazyStrategy === "fixed-delay",
+      },
+      {
+        name: t("waitTimeout"),
+        control: {
+          type: "slider",
+          key: "waitLoadedTimeoutSeconds",
+          min: 5,
+          max: 60,
+          step: 1,
+          defaultValue: settings.waitLoadedTimeoutSeconds,
+        },
+        visible: () => this.host.settings.lazyStrategy === "wait-loaded",
+      },
+      {
+        name: t("githubToken"),
+        desc: t("githubTokenDesc"),
+        render: (setting) => {
+          setting.addText((text) => {
+            text.inputEl.type = "password";
+            text.setPlaceholder("ghp_…");
+            text.setValue(this.host.settings.githubToken);
+            text.onChange((value) => {
+              void this.saveGithubToken(value);
+            });
+          });
+        },
+      },
+      {
+        type: "list",
+        heading: t("ignoreList"),
+        emptyState: t("ignoreEmpty"),
+        items: settings.ignoredItems.map((item) => ({ name: item.name })),
+        onDelete: (index) => {
+          void this.removeIgnored(index);
+        },
+      },
+      {
+        name: t("rollbackHeading"),
+        desc: t("rollbackDesc"),
+        render: (setting) => {
+          const mount = setting.settingEl.createDiv({ cls: "ktech-guard-backups" });
+          void this.renderBackups(mount);
+        },
+      },
+      {
+        name: t("bmc"),
+        desc: t("supportOptional"),
+        action: () => {
+          window.open(FUNDING_URL, "_blank");
+        },
+      },
+    ];
+  }
+
+  getControlValue(key: string): unknown {
+    return this.host.settings[key as ControlKey];
+  }
+
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    const settings = this.host.settings;
+    switch (key as ControlKey) {
+      case "checkOnStartup":
+        settings.checkOnStartup = Boolean(value);
+        break;
+      case "checkThemes":
+        settings.checkThemes = Boolean(value);
+        break;
+      case "ignoreDisabled":
+        settings.ignoreDisabled = Boolean(value);
+        break;
+      case "ignoreBeta":
+        settings.ignoreBeta = Boolean(value);
+        break;
+      case "daysUntilShow":
+        settings.daysUntilShow = Number(value);
+        break;
+      case "lazyStrategy":
+        settings.lazyStrategy = value as LazyStrategy;
+        break;
+      case "fixedDelaySeconds":
+        settings.fixedDelaySeconds = Number(value);
+        break;
+      case "waitLoadedTimeoutSeconds":
+        settings.waitLoadedTimeoutSeconds = Number(value);
+        break;
+      case "githubToken":
+        settings.githubToken = String(value).trim();
+        break;
+    }
+    await this.host.saveSettings();
+  }
+
+  private async saveGithubToken(value: string): Promise<void> {
+    this.host.settings.githubToken = value.trim();
+    await this.host.saveSettings();
+  }
+
+  private async removeIgnored(index: number): Promise<void> {
+    const settings = this.host.settings;
+    settings.ignoredItems = settings.ignoredItems.filter((_, i) => i !== index);
+    await this.host.saveSettings();
+    this.update();
+  }
+
+  /** Fallback for app versions older than 1.13.0. */
   display(): void {
     const { containerEl } = this;
     const settings = this.host.settings;

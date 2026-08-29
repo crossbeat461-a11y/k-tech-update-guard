@@ -193,7 +193,7 @@ export async function mapPool<T, R>(
   limit: number,
   worker: (item: T, index: number) => Promise<R>
 ): Promise<R[]> {
-  const out: R[] = new Array(items.length);
+  const out = new Array<R>(items.length);
   let next = 0;
   const runners = Array.from({ length: Math.max(1, limit) }, async () => {
     while (next < items.length) {

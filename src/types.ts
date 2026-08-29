@@ -60,7 +60,7 @@ export function parseStorage(raw: unknown): PluginStorage {
   }
   const data = raw as Record<string, unknown>;
   if ("settings" in data && data.settings && typeof data.settings === "object") {
-    const merged = Object.assign({}, DEFAULT_SETTINGS, data.settings) as GuardSettings;
+    const merged: GuardSettings = Object.assign({}, DEFAULT_SETTINGS, data.settings);
     merged.ignoredItems = asIgnoredItems(
       (data.settings as { ignoredItems?: unknown }).ignoredItems
     );
