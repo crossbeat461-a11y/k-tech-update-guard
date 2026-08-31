@@ -1,6 +1,6 @@
 # HANDOFF — K-Tech Update Guard
 
-<!-- updated: 2026-08-21 -->
+<!-- updated: 2026-08-31 -->
 
 ## Product
 
@@ -11,7 +11,7 @@
 | Author | K-Tech Studio |
 | Repo | `crossbeat461-a11y/k-tech-update-guard` |
 | LP | https://k-tech-update-guard-lp.vercel.app/ |
-| Version | 0.2.0 |
+| Version | 1.0.2 |
 
 ## Privacy
 
@@ -69,7 +69,7 @@ src/version.ts       Semver compare
 
 ## Release
 
-Tag `0.2.0` → GitHub Release with main.js / manifest.json / styles.css.
+Tag `1.0.2` → GitHub Release with main.js / manifest.json / styles.css.
 
 Do not include "Obsidian" in `manifest.json` description.
 Do not include "Plugin" in `manifest.json` name.

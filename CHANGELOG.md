@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2
+
+- Japanese install and update support text: 「サポートお願いします。開発の励みになります。」
+
+### 日本語
+
+- インストール／更新後の案内を「サポートお願いします。開発の励みになります。」に変更
+
 ## 1.0.1
 
 - Settings: the ignore list no longer calls the 1.13.0-only `SettingTab.update()`, which was newer than the declared `minAppVersion` (1.8.7). It now re-renders itself, like the rollback list.
