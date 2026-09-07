@@ -17,6 +17,7 @@ export interface GuardSettings {
   waitLoadedTimeoutSeconds: number;
   checkOnStartup: boolean;
   checkThemes: boolean;
+  skipBrat: boolean;
   ignoredItems: IgnoredItem[];
 }
 
@@ -30,6 +31,7 @@ export const DEFAULT_SETTINGS: GuardSettings = {
   waitLoadedTimeoutSeconds: 25,
   checkOnStartup: false,
   checkThemes: true,
+  skipBrat: true,
   ignoredItems: [],
 };
 
@@ -64,6 +66,7 @@ export function parseStorage(raw: unknown): PluginStorage {
     merged.ignoredItems = asIgnoredItems(
       (data.settings as { ignoredItems?: unknown }).ignoredItems
     );
+    if (typeof merged.skipBrat !== "boolean") merged.skipBrat = true;
     return {
       settings: merged,
       lastSeenVersion:
@@ -72,6 +75,7 @@ export function parseStorage(raw: unknown): PluginStorage {
   }
   const merged = Object.assign({}, DEFAULT_SETTINGS, data) as GuardSettings;
   merged.ignoredItems = asIgnoredItems((data as { ignoredItems?: unknown }).ignoredItems);
+  if (typeof merged.skipBrat !== "boolean") merged.skipBrat = true;
   return {
     settings: merged,
     lastSeenVersion: undefined,
@@ -151,6 +155,10 @@ export interface BackupRecord {
 export interface CheckResult {
   updates: AvailableUpdate[];
   skipped: number;
+  skippedSideload: number;
+  skippedBrat: number;
   errors: string[];
   rateLimited: boolean;
+  rateRemaining: number | null;
+  rateLimit: number | null;
 }

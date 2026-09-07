@@ -19,9 +19,9 @@ Check community plugin and theme updates on demand, then install only the ones y
 ## Longer description (if available)
 
 ```
-K-Tech Update Guard checks your installed community plugins and themes when you click Check. It talks to GitHub from your app (no third-party update server). If nothing is new, you get a clear “no updates” dialog. If there are updates, you see the count, tick what you want (or Select all), read the release notes, and install GitHub Release files — plugins use main.js / manifest.json / styles.css; themes use theme.css / manifest.json.
+K-Tech Update Guard checks your installed community plugins and themes when you click Check. It talks to GitHub from your app (no third-party update server). Version numbers come from each GitHub Release manifest first, so a normal check uses far fewer API calls. If nothing is new, you get a clear “no updates” dialog. If there are updates, you see the count, remaining API calls when GitHub sends them, tick what you want (or Select all), read the release notes, and install GitHub Release files — plugins use main.js / manifest.json / styles.css; themes use theme.css / manifest.json.
 
-You can ignore an item so it is not offered again, and restore the previous files after an update (kept locally). Updating this tool itself writes the new files without disabling the running instance, then reloads. Settings: skip disabled items, hide betas, wait N days after a release, check community themes, optional GitHub token stored locally, and Lazy Loader handling so delayed items are not mistaken for disabled.
+You can ignore an item so it is not offered again, and restore the previous files after an update (kept locally). Updating this tool itself writes the new files without disabling the running instance, then reloads. Settings: skip disabled items, skip BRAT-managed items (default on), hide betas, wait N days after a release, check community themes, optional GitHub token stored locally (public-repo read is enough), and Lazy Loader handling so delayed items are not mistaken for disabled. Sideloaded or directory-missing items are out of scope and are not looked up on GitHub.
 
 The interface follows the app language among English, Japanese, Simplified Chinese, Traditional Chinese, Korean, Spanish, German, French, Portuguese, and Russian.
 

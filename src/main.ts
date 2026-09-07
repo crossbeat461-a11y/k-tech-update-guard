@@ -113,7 +113,28 @@ export default class KTechUpdateGuard extends Plugin {
       const result = await checkForUpdates(this.app, this.settings);
       const extra: string[] = [];
       if (result.rateLimited) extra.push(t("rateLimitedLong"));
-      for (const err of result.errors) extra.push(err);
+      if (
+        result.rateRemaining !== null &&
+        result.rateLimit !== null &&
+        Number.isFinite(result.rateRemaining) &&
+        Number.isFinite(result.rateLimit)
+      ) {
+        extra.push(
+          t("rateRemaining", {
+            remaining: result.rateRemaining,
+            limit: result.rateLimit,
+          })
+        );
+      }
+      if (result.skippedSideload) {
+        extra.push(t("skippedSideload", { count: result.skippedSideload }));
+      }
+      if (result.skippedBrat) {
+        extra.push(t("skippedBrat", { count: result.skippedBrat }));
+      }
+      for (const err of result.errors) {
+        if (!extra.includes(err)) extra.push(err);
+      }
 
       if (!result.updates.length) {
         this.setStatus(t("statusUpToDate"));

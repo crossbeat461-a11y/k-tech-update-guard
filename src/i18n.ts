@@ -88,6 +88,13 @@ type Messages = {
   rollbackFailed: string;
   cmdRollback: string;
   noBackup: string;
+  skipBrat: string;
+  skipBratDesc: string;
+  communityScope: string;
+  communityScopeDesc: string;
+  rateRemaining: string;
+  skippedSideload: string;
+  skippedBrat: string;
 };
 
 const en: Messages = {
@@ -130,9 +137,10 @@ const en: Messages = {
     "With Lazy Loader, only items it marks Disabled are skipped. Delayed items stay included.",
   hideBeta: "Hide beta versions",
   hideBetaDesc:
-    "Hides GitHub prereleases and releases whose name or notes say beta, alpha, or rc.",
+    "Hides versions whose name says beta, alpha, or rc. GitHub's prerelease flag is used when waiting days is on, or when you load notes.",
   daysWait: "Days to wait after a release",
-  daysWaitDesc: "0 shows a release as soon as this check finds it.",
+  daysWaitDesc:
+    "0 shows a release as soon as this check finds it. Values above 0 call the GitHub API only for items that already look newer.",
   lazyHandling: "Delayed loading",
   lazyHandlingDesc:
     "Avoid treating Lazy Loader delayed items as disabled.",
@@ -144,7 +152,7 @@ const en: Messages = {
   waitTimeout: "Wait timeout (seconds)",
   githubToken: "GitHub token (optional)",
   githubTokenDesc:
-    "Without a token, GitHub allows about 60 API requests per hour for this network — shared with the official community installer. A PAT is stored locally only and is never sent to a K-Tech server.",
+    "Optional. Needs read access to public repositories. About 60 API calls per hour without it, on this network. Stored only on this device.",
   supportOptional: "Support is optional.",
   selfUpdatedReload: "K-Tech Update Guard was updated. Reloading…",
   missingReleaseFiles: "Release is missing main.js or manifest.json",
@@ -174,6 +182,15 @@ const en: Messages = {
   rollbackFailed: "Could not restore {name}: {error}",
   cmdRollback: "Restore previous files",
   noBackup: "No previous files saved for this item.",
+  skipBrat: "Skip BRAT-managed items",
+  skipBratDesc:
+    "If BRAT is installed, items it manages are left to BRAT. On by default.",
+  communityScope: "What this check covers",
+  communityScopeDesc:
+    "Only community directory plugins and themes. Sideloaded or BRAT-only folders are not looked up on GitHub.",
+  rateRemaining: "GitHub API remaining: {remaining} / {limit}",
+  skippedSideload: "Skipped {count} item(s) not in the community directory.",
+  skippedBrat: "Skipped {count} BRAT-managed item(s).",
 };
 
 const ja: Messages = {
@@ -216,9 +233,10 @@ const ja: Messages = {
     "Lazy Loader があるときは、そちらの「無効」だけを無効とみなします（遅延読み込みは対象に残します）。",
   hideBeta: "ベータ版を出さない",
   hideBetaDesc:
-    "GitHub のプレリリースと、名前やリリースノートに beta / alpha / rc とあるものを出さない。",
+    "名前に beta / alpha / rc とあるものを出さない。GitHub のプレリリース印は、待機日数が1以上のとき、またはノートを開いたときに見ます。",
   daysWait: "公開から何日待つか",
-  daysWaitDesc: "0 なら、確認した時点の最新を出します。",
+  daysWaitDesc:
+    "0 なら、確認した時点の最新を出します。1以上のときだけ、新しそうなものに GitHub API を使います。",
   lazyHandling: "遅延読み込みの扱い",
   lazyHandlingDesc:
     "Lazy Loader 利用時に、まだ読み込まれていない項目を無効と誤らないための方法です。",
@@ -230,7 +248,7 @@ const ja: Messages = {
   waitTimeout: "待ち時間の上限（秒）",
   githubToken: "GitHub トークン（任意）",
   githubTokenDesc:
-    "トークンなしは、この回線で GitHub API が1時間あたり約60回です。公式のコミュニティ導入も同じ回数です。PAT は端末内のみで、作者サーバーには送りません。",
+    "任意です。公開リポジトリの読み取りだけで足ります。なしだとこの回線で API は約60回/時です。この端末にだけ保存します。",
   supportOptional: "開発支援は任意です。",
   selfUpdatedReload: "K-Tech Update Guard を更新しました。再読み込みします…",
   missingReleaseFiles: "リリースに main.js または manifest.json がありません",
@@ -260,6 +278,15 @@ const ja: Messages = {
   rollbackFailed: "{name} を戻せませんでした: {error}",
   cmdRollback: "直前のファイルに戻す",
   noBackup: "この項目の直前ファイルはありません。",
+  skipBrat: "BRAT 管理の項目は対象外",
+  skipBratDesc:
+    "BRAT が入っているとき、そちらが管理する項目は BRAT に任せます。既定はオンです。",
+  communityScope: "確認の範囲",
+  communityScopeDesc:
+    "コミュニティ掲載のプラグインとテーマだけです。手動コピーや BRAT のみのフォルダは、GitHub を推測して見に行きません。",
+  rateRemaining: "GitHub API の残り: {remaining} / {limit}",
+  skippedSideload: "コミュニティ未掲載のため {count} 件を対象外にしました。",
+  skippedBrat: "BRAT 管理のため {count} 件を対象外にしました。",
 };
 
 const zhCn: Messages = {
@@ -339,6 +366,13 @@ const zhCn: Messages = {
   rollbackFailed: "无法还原 {name}：{error}",
   cmdRollback: "还原上一份文件",
   noBackup: "此项目没有保存上一份文件。",
+  skipBrat: "跳过 BRAT 管理的项目",
+  skipBratDesc: "若已安装 BRAT，由其管理的项目交给 BRAT。默认开启。",
+  communityScope: "检查范围",
+  communityScopeDesc: "只检查社区目录中的插件和主题。不会根据 GitHub 猜测手动安装或仅由 BRAT 管理的文件夹。",
+  rateRemaining: "GitHub API 剩余：{remaining} / {limit}",
+  skippedSideload: "因不在社区目录中，已跳过 {count} 项。",
+  skippedBrat: "因由 BRAT 管理，已跳过 {count} 项。",
 };
 
 const zhTw: Messages = {
@@ -418,6 +452,13 @@ const zhTw: Messages = {
   rollbackFailed: "無法還原 {name}：{error}",
   cmdRollback: "還原上一份檔案",
   noBackup: "此項目沒有儲存上一份檔案。",
+  skipBrat: "略過 BRAT 管理的項目",
+  skipBratDesc: "若已安裝 BRAT，由其管理的項目交給 BRAT。預設開啟。",
+  communityScope: "檢查範圍",
+  communityScopeDesc: "只檢查社群目錄中的外掛與主題。不會從 GitHub 猜測手動安裝或僅由 BRAT 管理的資料夾。",
+  rateRemaining: "GitHub API 剩餘：{remaining} / {limit}",
+  skippedSideload: "因不在社群目錄中，已略過 {count} 項。",
+  skippedBrat: "因由 BRAT 管理，已略過 {count} 項。",
 };
 
 const ko: Messages = {
@@ -501,6 +542,13 @@ const ko: Messages = {
   rollbackFailed: "{name}을(를) 복원할 수 없습니다: {error}",
   cmdRollback: "이전 파일로 복원",
   noBackup: "이 항목의 이전 파일이 없습니다.",
+  skipBrat: "BRAT 관리 항목 건너뛰기",
+  skipBratDesc: "BRAT가 있으면 그 목록의 항목은 BRAT에 맡깁니다. 기본은 켜짐입니다.",
+  communityScope: "확인 범위",
+  communityScopeDesc: "커뮤니티 목록의 플러그인과 테마만 확인합니다. 수동 설치나 BRAT 전용 폴더는 GitHub에서 추측하지 않습니다.",
+  rateRemaining: "GitHub API 남은 횟수: {remaining} / {limit}",
+  skippedSideload: "커뮤니티 목록에 없어 {count}개를 건너뛰었습니다.",
+  skippedBrat: "BRAT 관리라서 {count}개를 건너뛰었습니다.",
 };
 
 const es: Messages = {
@@ -586,6 +634,13 @@ const es: Messages = {
   rollbackFailed: "No se pudo restaurar {name}: {error}",
   cmdRollback: "Restaurar archivos anteriores",
   noBackup: "No hay archivos anteriores guardados para este elemento.",
+  skipBrat: "Omitir elementos de BRAT",
+  skipBratDesc: "Si BRAT está instalado, sus elementos se dejan a BRAT. Activado por defecto.",
+  communityScope: "Alcance de la comprobación",
+  communityScopeDesc: "Solo plugins y temas del directorio de la comunidad. No se busca en GitHub lo instalado a mano o solo con BRAT.",
+  rateRemaining: "GitHub API restante: {remaining} / {limit}",
+  skippedSideload: "Se omitieron {count} elementos que no están en el directorio de la comunidad.",
+  skippedBrat: "Se omitieron {count} elementos gestionados por BRAT.",
 };
 
 const de: Messages = {
@@ -671,6 +726,13 @@ const de: Messages = {
   rollbackFailed: "{name} konnte nicht wiederhergestellt werden: {error}",
   cmdRollback: "Vorherige Dateien wiederherstellen",
   noBackup: "Keine vorherigen Dateien für diesen Eintrag gespeichert.",
+  skipBrat: "Von BRAT verwaltete Einträge überspringen",
+  skipBratDesc: "Ist BRAT installiert, bleiben dessen Einträge bei BRAT. Standard: an.",
+  communityScope: "Prüfumfang",
+  communityScopeDesc: "Nur Plugins und Themes aus dem Community-Verzeichnis. Manuell oder nur per BRAT installierte Ordner werden nicht auf GitHub geraten.",
+  rateRemaining: "GitHub-API übrig: {remaining} / {limit}",
+  skippedSideload: "{count} Einträge übersprungen, die nicht im Community-Verzeichnis stehen.",
+  skippedBrat: "{count} von BRAT verwaltete Einträge übersprungen.",
 };
 
 const fr: Messages = {
@@ -757,6 +819,13 @@ const fr: Messages = {
   rollbackFailed: "Impossible de restaurer {name} : {error}",
   cmdRollback: "Restaurer les fichiers précédents",
   noBackup: "Aucun fichier précédent enregistré pour cet élément.",
+  skipBrat: "Ignorer les éléments gérés par BRAT",
+  skipBratDesc: "Si BRAT est installé, ses éléments lui sont laissés. Activé par défaut.",
+  communityScope: "Périmètre de la vérification",
+  communityScopeDesc: "Uniquement les plugins et thèmes du répertoire communautaire. Les dossiers installés à la main ou seulement via BRAT ne sont pas cherchés sur GitHub.",
+  rateRemaining: "GitHub API restante : {remaining} / {limit}",
+  skippedSideload: "{count} élément(s) hors répertoire communautaire ignoré(s).",
+  skippedBrat: "{count} élément(s) géré(s) par BRAT ignoré(s).",
 };
 
 const pt: Messages = {
@@ -842,6 +911,13 @@ const pt: Messages = {
   rollbackFailed: "Não foi possível restaurar {name}: {error}",
   cmdRollback: "Restaurar arquivos anteriores",
   noBackup: "Não há arquivos anteriores salvos para este item.",
+  skipBrat: "Ignorar itens gerenciados pelo BRAT",
+  skipBratDesc: "Se o BRAT estiver instalado, os itens dele ficam com o BRAT. Ligado por padrão.",
+  communityScope: "Alcance da verificação",
+  communityScopeDesc: "Só plugins e temas do diretório da comunidade. Pastas instaladas à mão ou só pelo BRAT não são buscadas no GitHub.",
+  rateRemaining: "GitHub API restante: {remaining} / {limit}",
+  skippedSideload: "{count} item(ns) fora do diretório da comunidade ignorado(s).",
+  skippedBrat: "{count} item(ns) gerenciado(s) pelo BRAT ignorado(s).",
 };
 
 const ru: Messages = {
@@ -928,6 +1004,13 @@ const ru: Messages = {
   rollbackFailed: "Не удалось восстановить {name}: {error}",
   cmdRollback: "Восстановить предыдущие файлы",
   noBackup: "Для этого элемента нет сохранённых предыдущих файлов.",
+  skipBrat: "Пропускать элементы BRAT",
+  skipBratDesc: "Если установлен BRAT, его элементы остаются за BRAT. Включено по умолчанию.",
+  communityScope: "Область проверки",
+  communityScopeDesc: "Только плагины и темы из каталога сообщества. Папки, установленные вручную или только через BRAT, на GitHub не угадываются.",
+  rateRemaining: "GitHub API осталось: {remaining} / {limit}",
+  skippedSideload: "Пропущено {count} вне каталога сообщества.",
+  skippedBrat: "Пропущено {count} под управлением BRAT.",
 };
 
 const TABLES: Record<Locale, Messages> = {

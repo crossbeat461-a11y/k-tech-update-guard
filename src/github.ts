@@ -30,6 +30,35 @@ export class RateLimitError extends Error {
   }
 }
 
+export interface RateLimitInfo {
+  remaining: number | null;
+  limit: number | null;
+}
+
+let lastRateLimit: RateLimitInfo = { remaining: null, limit: null };
+
+export function resetRateLimitInfo(): void {
+  lastRateLimit = { remaining: null, limit: null };
+}
+
+export function getLastRateLimit(): RateLimitInfo {
+  return { remaining: lastRateLimit.remaining, limit: lastRateLimit.limit };
+}
+
+function noteRateHeaders(headers: Record<string, string>): void {
+  const remainingRaw =
+    headers["x-ratelimit-remaining"] ?? headers["X-RateLimit-Remaining"];
+  const limitRaw = headers["x-ratelimit-limit"] ?? headers["X-RateLimit-Limit"];
+  if (remainingRaw !== undefined && remainingRaw !== "") {
+    const remaining = Number(remainingRaw);
+    if (Number.isFinite(remaining)) lastRateLimit.remaining = remaining;
+  }
+  if (limitRaw !== undefined && limitRaw !== "") {
+    const limit = Number(limitRaw);
+    if (Number.isFinite(limit)) lastRateLimit.limit = limit;
+  }
+}
+
 export async function fetchJson<T>(
   url: string,
   token = ""
@@ -40,7 +69,8 @@ export async function fetchJson<T>(
     headers: authHeaders(token),
     throw: false,
   });
-  const remaining = res.headers["x-ratelimit-remaining"];
+  noteRateHeaders(res.headers);
+  const remaining = res.headers["x-ratelimit-remaining"] ?? res.headers["X-RateLimit-Remaining"];
   if (res.status === 403 && remaining === "0") {
     throw new RateLimitError();
   }
@@ -114,8 +144,9 @@ export async function fetchText(url: string, token = ""): Promise<string | null>
     headers: downloadHeaders(token),
     throw: false,
   });
+  noteRateHeaders(res.headers);
   if (res.status === 403) {
-    const remaining = res.headers["x-ratelimit-remaining"];
+    const remaining = res.headers["x-ratelimit-remaining"] ?? res.headers["X-RateLimit-Remaining"];
     if (remaining === "0") throw new RateLimitError();
   }
   if (res.status < 200 || res.status >= 300) return null;

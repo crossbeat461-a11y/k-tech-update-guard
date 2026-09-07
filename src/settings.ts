@@ -51,6 +51,20 @@ export class GuardSettingTab extends PluginSettingTab {
         },
       },
       {
+        name: t("skipBrat"),
+        desc: t("skipBratDesc"),
+        control: {
+          type: "toggle",
+          key: "skipBrat",
+          defaultValue: settings.skipBrat,
+        },
+      },
+      {
+        name: t("communityScope"),
+        desc: t("communityScopeDesc"),
+        render: () => undefined,
+      },
+      {
         name: t("ignoreDisabled"),
         desc: t("ignoreDisabledDesc"),
         control: {
@@ -172,6 +186,9 @@ export class GuardSettingTab extends PluginSettingTab {
       case "checkThemes":
         settings.checkThemes = Boolean(value);
         break;
+      case "skipBrat":
+        settings.skipBrat = Boolean(value);
+        break;
       case "ignoreDisabled":
         settings.ignoreDisabled = Boolean(value);
         break;
@@ -258,6 +275,21 @@ export class GuardSettingTab extends PluginSettingTab {
           await this.host.saveSettings();
         });
       });
+
+    new Setting(containerEl)
+      .setName(t("skipBrat"))
+      .setDesc(t("skipBratDesc"))
+      .addToggle((toggle) => {
+        toggle.setValue(settings.skipBrat);
+        toggle.onChange(async (value) => {
+          settings.skipBrat = value;
+          await this.host.saveSettings();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName(t("communityScope"))
+      .setDesc(t("communityScopeDesc"));
 
     new Setting(containerEl)
       .setName(t("ignoreDisabled"))

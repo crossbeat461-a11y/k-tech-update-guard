@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.3
+
+- Check newer versions from Release `manifest.json` first. GitHub API is used for wait-days and when you open release notes
+- Show remaining GitHub API calls after a check
+- Skip BRAT-managed items by default (can turn off in Settings)
+- Settings state that sideloaded / directory-missing items are out of scope
+- Shorter GitHub token help (public-repo read is enough)
+
+### 日本語
+
+- 確認はまず Release の `manifest.json`。GitHub API は「公開から待つ」日数があるときと、リリースノートを開いたときに使う
+- 確認後に GitHub API の残り回数を出す
+- BRAT が管理する項目は既定で対象外（設定でオフにできる）
+- コミュニティ未掲載は対象外であることを設定に書く
+- トークンの説明を短くした（公開リポジトリの読み取りで足りる）
+
 ## 1.0.2
 
 - Japanese install and update support text: 「サポートお願いします。開発の励みになります。」

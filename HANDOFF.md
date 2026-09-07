@@ -1,6 +1,6 @@
 # HANDOFF — K-Tech Update Guard
 
-<!-- updated: 2026-08-31 -->
+<!-- updated: 2026-09-07 -->
 
 ## Product
 
@@ -11,7 +11,7 @@
 | Author | K-Tech Studio |
 | Repo | `crossbeat461-a11y/k-tech-update-guard` |
 | LP | https://k-tech-update-guard-lp.vercel.app/ |
-| Version | 1.0.2 |
+| Version | 1.0.3 |
 
 ## Privacy
 
@@ -42,6 +42,7 @@ Enable in Settings → Community plugins → K-Tech Update Guard.
 ```
 src/main.ts          Commands, ribbon, status bar, BMC, check entry
 src/i18n.ts          10 locales
+src/brat.ts          BRAT data.json plugin/theme repo list
 src/check.ts         Compare installed manifests vs GitHub latest (plugins + themes)
 src/github.ts        requestUrl + rate limit
 src/registry.ts      community-plugins.json / community-css-themes.json → repo
@@ -65,11 +66,14 @@ src/version.ts       Semver compare
 - [ ] Update keeps previous files; Restore previous files writes them back
 - [ ] Release notes expand in the update dialog
 - [ ] Installed community themes appear in the check when the setting is on
+- [ ] After a check, remaining API count appears when GitHub sends the header
+- [ ] Sideloaded plugins are skipped and counted
+- [ ] BRAT-managed items skipped when the setting is on
 - [ ] UI follows the app language among the 10 locales
 
 ## Release
 
-Tag `1.0.2` → GitHub Release with main.js / manifest.json / styles.css.
+Tag `1.0.3` → GitHub Release with main.js / manifest.json / styles.css.
 
 Do not include "Obsidian" in `manifest.json` description.
 Do not include "Plugin" in `manifest.json` name.

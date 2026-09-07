@@ -1,12 +1,15 @@
 import type { App } from "obsidian";
+import { isBratManaged, readBratRepos } from "./brat";
 import { CHECK_CONCURRENCY, OWN_REPO, PLUGIN_ID } from "./constants";
 import {
   defaultReleaseAssets,
   fetchLatestManifest,
   fetchLatestRelease,
+  getLastRateLimit,
   isGithubRepo,
   mapPool,
   RateLimitError,
+  resetRateLimitInfo,
 } from "./github";
 import {
   applyLazyWait,
@@ -142,7 +145,9 @@ async function evaluateRemote(
 
   if (!isNewerVersion(latestVersion, item.version)) return null;
 
-  if (!notes && !state.rateLimited) {
+  // Bulk check uses Release download URLs. GitHub API (notes / publishedAt)
+  // runs only when "days to wait" is on, or when the user opens notes.
+  if (settings.daysUntilShow > 0 && !notes && !state.rateLimited) {
     try {
       const release = await fetchLatestRelease(repo, settings.githubToken);
       if (release) {
@@ -201,7 +206,9 @@ export async function checkForUpdates(
   await applyLazyWait(app, settings, pending, lazy);
   installed = await listInstalled(app);
 
+  resetRateLimitInfo();
   const registry = await loadCommunityRegistry();
+  const bratRepos = settings.skipBrat ? await readBratRepos(app) : new Set<string>();
   const pluginCandidates = installed.filter(
     (plugin) => !isEffectivelyDisabled(plugin, settings, lazy)
   );
@@ -210,13 +217,25 @@ export async function checkForUpdates(
   const state = {
     errors: [] as string[],
     skipped: installed.length - pluginCandidates.length,
+    skippedSideload: 0,
+    skippedBrat: 0,
     rateLimited: false,
   };
 
   await mapPool(pluginCandidates, CHECK_CONCURRENCY, async (plugin) => {
+    if (state.rateLimited) {
+      state.skipped += 1;
+      return;
+    }
     const repo = plugin.id === PLUGIN_ID ? OWN_REPO : registry.get(plugin.id);
     if (!repo) {
       state.skipped += 1;
+      state.skippedSideload += 1;
+      return;
+    }
+    if (settings.skipBrat && isBratManaged(repo, bratRepos)) {
+      state.skipped += 1;
+      state.skippedBrat += 1;
       return;
     }
     try {
@@ -238,9 +257,19 @@ export async function checkForUpdates(
     const themeRegistry = await loadCommunityThemes();
     const themes = await listInstalledThemes(app);
     await mapPool(themes, CHECK_CONCURRENCY, async (theme) => {
+      if (state.rateLimited) {
+        state.skipped += 1;
+        return;
+      }
       const repo = themeRegistry.get(theme.id) || themeRegistry.get(theme.name);
       if (!repo) {
         state.skipped += 1;
+        state.skippedSideload += 1;
+        return;
+      }
+      if (settings.skipBrat && isBratManaged(repo, bratRepos)) {
+        state.skipped += 1;
+        state.skippedBrat += 1;
         return;
       }
       try {
@@ -260,10 +289,15 @@ export async function checkForUpdates(
   }
 
   updates.sort((a, b) => a.name.localeCompare(b.name));
+  const rate = getLastRateLimit();
   return {
     updates,
     skipped: state.skipped,
+    skippedSideload: state.skippedSideload,
+    skippedBrat: state.skippedBrat,
     errors: state.errors,
     rateLimited: state.rateLimited,
+    rateRemaining: rate.remaining,
+    rateLimit: rate.limit,
   };
 }

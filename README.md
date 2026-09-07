@@ -32,13 +32,15 @@ UI languages: English, Japanese, Simplified Chinese, Traditional Chinese, Korean
 - Each update keeps the previous files; restore them from Settings or **Restore previous files**
 - Release notes in the update dialog, with a GitHub link
 - Optional wait-after-release, hide betas, skip disabled items, check community themes
+- After a check, shows remaining GitHub API calls when the headers are present
+- Skips BRAT-managed items by default (setting)
 - Lazy Loader: read its settings so delayed items are not treated as disabled (other wait strategies are in Settings)
 
 ### What it does not do
 
 - It does not send your installed list to K-Tech
 - It does not auto-update in the background unless you turn on “Check on startup”
-- Items that are not in the community directory (sideloaded / BRAT-only) are skipped
+- Items that are not in the community directory (sideloaded / BRAT-only) are skipped — GitHub is not guessed
 
 ### How to use
 
@@ -81,6 +83,8 @@ MIT
 - 更新前のファイルを残し、設定またはコマンド **直前のファイルに戻す** で復元
 - 更新ダイアログでリリースノート（GitHub へのリンク付き）
 - 公開からの待機日数、ベータ非表示、無効項目の除外、コミュニティテーマの確認
+- 確認後、分かるときは GitHub API の残り回数を出す
+- BRAT が管理する項目は既定で対象外（設定で変えられる）
 - Lazy Loader 利用時は、そちらの設定を読んで遅延読み込みを無効と誤らない（他の待ち方も設定にあります）
 
 画面は次の10言語です。英語、日本語、簡体中国語、繁体中国語、韓国語、スペイン語、ドイツ語、フランス語、ポルトガル語、ロシア語。
@@ -89,7 +93,7 @@ MIT
 
 - 導入一覧を K-Tech に送らない
 - 「起動時に確認する」をオンにしない限り、裏で自動更新しない
-- コミュニティ未登録（手動コピー / BRAT のみ）は対象外
+- コミュニティ未登録（手動コピー / BRAT のみ）は対象外。GitHub を推測して見に行かない
 
 ### 使い方
 

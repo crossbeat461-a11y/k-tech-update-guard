@@ -28,6 +28,49 @@ __export(main_exports, {
 module.exports = __toCommonJS(main_exports);
 var import_obsidian6 = require("obsidian");
 
+// src/brat.ts
+var BRAT_PLUGIN_IDS = ["obsidian42-brat", "brat"];
+function normalizeBratRepo(raw) {
+  const trimmed = raw.trim().replace(/\.git$/i, "");
+  const fromUrl = /github\.com\/([^/]+\/[^/#?]+)/i.exec(trimmed);
+  const candidate = fromUrl ? fromUrl[1] : trimmed;
+  const repo = candidate.replace(/\/+$/, "");
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) return "";
+  return repo.toLowerCase();
+}
+function collectRepos(list, out) {
+  if (!Array.isArray(list)) return;
+  for (const row of list) {
+    if (typeof row === "string") {
+      const repo2 = normalizeBratRepo(row);
+      if (repo2) out.add(repo2);
+      continue;
+    }
+    if (!row || typeof row !== "object") continue;
+    const rec = row;
+    const repo = normalizeBratRepo(String(rec.repo || rec.plugin || ""));
+    if (repo) out.add(repo);
+  }
+}
+async function readBratRepos(app) {
+  const repos = /* @__PURE__ */ new Set();
+  for (const id of BRAT_PLUGIN_IDS) {
+    const path = `${app.vault.configDir}/plugins/${id}/data.json`;
+    try {
+      if (!await app.vault.adapter.exists(path)) continue;
+      const raw = await app.vault.adapter.read(path);
+      const json = JSON.parse(raw);
+      collectRepos(json.pluginList, repos);
+      collectRepos(json.themesList, repos);
+    } catch (e) {
+    }
+  }
+  return repos;
+}
+function isBratManaged(repo, bratRepos) {
+  return bratRepos.has(repo.trim().toLowerCase());
+}
+
 // src/constants.ts
 var PLUGIN_ID = "k-tech-update-guard";
 var PLUGIN_NAME = "K-Tech Update Guard";
@@ -60,14 +103,36 @@ var RateLimitError = class extends Error {
     this.name = "RateLimitError";
   }
 };
+var lastRateLimit = { remaining: null, limit: null };
+function resetRateLimitInfo() {
+  lastRateLimit = { remaining: null, limit: null };
+}
+function getLastRateLimit() {
+  return { remaining: lastRateLimit.remaining, limit: lastRateLimit.limit };
+}
+function noteRateHeaders(headers) {
+  var _a, _b;
+  const remainingRaw = (_a = headers["x-ratelimit-remaining"]) != null ? _a : headers["X-RateLimit-Remaining"];
+  const limitRaw = (_b = headers["x-ratelimit-limit"]) != null ? _b : headers["X-RateLimit-Limit"];
+  if (remainingRaw !== void 0 && remainingRaw !== "") {
+    const remaining = Number(remainingRaw);
+    if (Number.isFinite(remaining)) lastRateLimit.remaining = remaining;
+  }
+  if (limitRaw !== void 0 && limitRaw !== "") {
+    const limit = Number(limitRaw);
+    if (Number.isFinite(limit)) lastRateLimit.limit = limit;
+  }
+}
 async function fetchJson(url, token = "") {
+  var _a;
   const res = await (0, import_obsidian.requestUrl)({
     url,
     method: "GET",
     headers: authHeaders(token),
     throw: false
   });
-  const remaining = res.headers["x-ratelimit-remaining"];
+  noteRateHeaders(res.headers);
+  const remaining = (_a = res.headers["x-ratelimit-remaining"]) != null ? _a : res.headers["X-RateLimit-Remaining"];
   if (res.status === 403 && remaining === "0") {
     throw new RateLimitError();
   }
@@ -123,14 +188,16 @@ function defaultReleaseAssets(repo, kind = "plugin", tag) {
   ];
 }
 async function fetchText(url, token = "") {
+  var _a;
   const res = await (0, import_obsidian.requestUrl)({
     url,
     method: "GET",
     headers: downloadHeaders(token),
     throw: false
   });
+  noteRateHeaders(res.headers);
   if (res.status === 403) {
-    const remaining = res.headers["x-ratelimit-remaining"];
+    const remaining = (_a = res.headers["x-ratelimit-remaining"]) != null ? _a : res.headers["X-RateLimit-Remaining"];
     if (remaining === "0") throw new RateLimitError();
   }
   if (res.status < 200 || res.status >= 300) return null;
@@ -340,9 +407,9 @@ var en = {
   ignoreDisabled: "Ignore disabled items",
   ignoreDisabledDesc: "With Lazy Loader, only items it marks Disabled are skipped. Delayed items stay included.",
   hideBeta: "Hide beta versions",
-  hideBetaDesc: "Hides GitHub prereleases and releases whose name or notes say beta, alpha, or rc.",
+  hideBetaDesc: "Hides versions whose name says beta, alpha, or rc. GitHub's prerelease flag is used when waiting days is on, or when you load notes.",
   daysWait: "Days to wait after a release",
-  daysWaitDesc: "0 shows a release as soon as this check finds it.",
+  daysWaitDesc: "0 shows a release as soon as this check finds it. Values above 0 call the GitHub API only for items that already look newer.",
   lazyHandling: "Delayed loading",
   lazyHandlingDesc: "Avoid treating Lazy Loader delayed items as disabled.",
   lazyReadConfig: "Read Lazy Loader settings (recommended)",
@@ -352,7 +419,7 @@ var en = {
   waitSeconds: "Wait seconds",
   waitTimeout: "Wait timeout (seconds)",
   githubToken: "GitHub token (optional)",
-  githubTokenDesc: "Without a token, GitHub allows about 60 API requests per hour for this network \u2014 shared with the official community installer. A PAT is stored locally only and is never sent to a K-Tech server.",
+  githubTokenDesc: "Optional. Needs read access to public repositories. About 60 API calls per hour without it, on this network. Stored only on this device.",
   supportOptional: "Support is optional.",
   selfUpdatedReload: "K-Tech Update Guard was updated. Reloading\u2026",
   missingReleaseFiles: "Release is missing main.js or manifest.json",
@@ -379,7 +446,14 @@ var en = {
   rolledBack: "Restored previous files for {name}.",
   rollbackFailed: "Could not restore {name}: {error}",
   cmdRollback: "Restore previous files",
-  noBackup: "No previous files saved for this item."
+  noBackup: "No previous files saved for this item.",
+  skipBrat: "Skip BRAT-managed items",
+  skipBratDesc: "If BRAT is installed, items it manages are left to BRAT. On by default.",
+  communityScope: "What this check covers",
+  communityScopeDesc: "Only community directory plugins and themes. Sideloaded or BRAT-only folders are not looked up on GitHub.",
+  rateRemaining: "GitHub API remaining: {remaining} / {limit}",
+  skippedSideload: "Skipped {count} item(s) not in the community directory.",
+  skippedBrat: "Skipped {count} BRAT-managed item(s)."
 };
 var ja = {
   thanksInstall: "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059",
@@ -415,9 +489,9 @@ var ja = {
   ignoreDisabled: "\u7121\u52B9\u306E\u9805\u76EE\u306F\u5BFE\u8C61\u5916",
   ignoreDisabledDesc: "Lazy Loader \u304C\u3042\u308B\u3068\u304D\u306F\u3001\u305D\u3061\u3089\u306E\u300C\u7121\u52B9\u300D\u3060\u3051\u3092\u7121\u52B9\u3068\u307F\u306A\u3057\u307E\u3059\uFF08\u9045\u5EF6\u8AAD\u307F\u8FBC\u307F\u306F\u5BFE\u8C61\u306B\u6B8B\u3057\u307E\u3059\uFF09\u3002",
   hideBeta: "\u30D9\u30FC\u30BF\u7248\u3092\u51FA\u3055\u306A\u3044",
-  hideBetaDesc: "GitHub \u306E\u30D7\u30EC\u30EA\u30EA\u30FC\u30B9\u3068\u3001\u540D\u524D\u3084\u30EA\u30EA\u30FC\u30B9\u30CE\u30FC\u30C8\u306B beta / alpha / rc \u3068\u3042\u308B\u3082\u306E\u3092\u51FA\u3055\u306A\u3044\u3002",
+  hideBetaDesc: "\u540D\u524D\u306B beta / alpha / rc \u3068\u3042\u308B\u3082\u306E\u3092\u51FA\u3055\u306A\u3044\u3002GitHub \u306E\u30D7\u30EC\u30EA\u30EA\u30FC\u30B9\u5370\u306F\u3001\u5F85\u6A5F\u65E5\u6570\u304C1\u4EE5\u4E0A\u306E\u3068\u304D\u3001\u307E\u305F\u306F\u30CE\u30FC\u30C8\u3092\u958B\u3044\u305F\u3068\u304D\u306B\u898B\u307E\u3059\u3002",
   daysWait: "\u516C\u958B\u304B\u3089\u4F55\u65E5\u5F85\u3064\u304B",
-  daysWaitDesc: "0 \u306A\u3089\u3001\u78BA\u8A8D\u3057\u305F\u6642\u70B9\u306E\u6700\u65B0\u3092\u51FA\u3057\u307E\u3059\u3002",
+  daysWaitDesc: "0 \u306A\u3089\u3001\u78BA\u8A8D\u3057\u305F\u6642\u70B9\u306E\u6700\u65B0\u3092\u51FA\u3057\u307E\u3059\u30021\u4EE5\u4E0A\u306E\u3068\u304D\u3060\u3051\u3001\u65B0\u3057\u305D\u3046\u306A\u3082\u306E\u306B GitHub API \u3092\u4F7F\u3044\u307E\u3059\u3002",
   lazyHandling: "\u9045\u5EF6\u8AAD\u307F\u8FBC\u307F\u306E\u6271\u3044",
   lazyHandlingDesc: "Lazy Loader \u5229\u7528\u6642\u306B\u3001\u307E\u3060\u8AAD\u307F\u8FBC\u307E\u308C\u3066\u3044\u306A\u3044\u9805\u76EE\u3092\u7121\u52B9\u3068\u8AA4\u3089\u306A\u3044\u305F\u3081\u306E\u65B9\u6CD5\u3067\u3059\u3002",
   lazyReadConfig: "Lazy Loader \u306E\u8A2D\u5B9A\u3092\u8AAD\u3080\uFF08\u63A8\u5968\uFF09",
@@ -427,7 +501,7 @@ var ja = {
   waitSeconds: "\u5F85\u6A5F\u79D2\u6570",
   waitTimeout: "\u5F85\u3061\u6642\u9593\u306E\u4E0A\u9650\uFF08\u79D2\uFF09",
   githubToken: "GitHub \u30C8\u30FC\u30AF\u30F3\uFF08\u4EFB\u610F\uFF09",
-  githubTokenDesc: "\u30C8\u30FC\u30AF\u30F3\u306A\u3057\u306F\u3001\u3053\u306E\u56DE\u7DDA\u3067 GitHub API \u304C1\u6642\u9593\u3042\u305F\u308A\u7D0460\u56DE\u3067\u3059\u3002\u516C\u5F0F\u306E\u30B3\u30DF\u30E5\u30CB\u30C6\u30A3\u5C0E\u5165\u3082\u540C\u3058\u56DE\u6570\u3067\u3059\u3002PAT \u306F\u7AEF\u672B\u5185\u306E\u307F\u3067\u3001\u4F5C\u8005\u30B5\u30FC\u30D0\u30FC\u306B\u306F\u9001\u308A\u307E\u305B\u3093\u3002",
+  githubTokenDesc: "\u4EFB\u610F\u3067\u3059\u3002\u516C\u958B\u30EA\u30DD\u30B8\u30C8\u30EA\u306E\u8AAD\u307F\u53D6\u308A\u3060\u3051\u3067\u8DB3\u308A\u307E\u3059\u3002\u306A\u3057\u3060\u3068\u3053\u306E\u56DE\u7DDA\u3067 API \u306F\u7D0460\u56DE/\u6642\u3067\u3059\u3002\u3053\u306E\u7AEF\u672B\u306B\u3060\u3051\u4FDD\u5B58\u3057\u307E\u3059\u3002",
   supportOptional: "\u958B\u767A\u652F\u63F4\u306F\u4EFB\u610F\u3067\u3059\u3002",
   selfUpdatedReload: "K-Tech Update Guard \u3092\u66F4\u65B0\u3057\u307E\u3057\u305F\u3002\u518D\u8AAD\u307F\u8FBC\u307F\u3057\u307E\u3059\u2026",
   missingReleaseFiles: "\u30EA\u30EA\u30FC\u30B9\u306B main.js \u307E\u305F\u306F manifest.json \u304C\u3042\u308A\u307E\u305B\u3093",
@@ -454,7 +528,14 @@ var ja = {
   rolledBack: "{name} \u3092\u76F4\u524D\u306E\u30D5\u30A1\u30A4\u30EB\u306B\u623B\u3057\u307E\u3057\u305F\u3002",
   rollbackFailed: "{name} \u3092\u623B\u305B\u307E\u305B\u3093\u3067\u3057\u305F: {error}",
   cmdRollback: "\u76F4\u524D\u306E\u30D5\u30A1\u30A4\u30EB\u306B\u623B\u3059",
-  noBackup: "\u3053\u306E\u9805\u76EE\u306E\u76F4\u524D\u30D5\u30A1\u30A4\u30EB\u306F\u3042\u308A\u307E\u305B\u3093\u3002"
+  noBackup: "\u3053\u306E\u9805\u76EE\u306E\u76F4\u524D\u30D5\u30A1\u30A4\u30EB\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+  skipBrat: "BRAT \u7BA1\u7406\u306E\u9805\u76EE\u306F\u5BFE\u8C61\u5916",
+  skipBratDesc: "BRAT \u304C\u5165\u3063\u3066\u3044\u308B\u3068\u304D\u3001\u305D\u3061\u3089\u304C\u7BA1\u7406\u3059\u308B\u9805\u76EE\u306F BRAT \u306B\u4EFB\u305B\u307E\u3059\u3002\u65E2\u5B9A\u306F\u30AA\u30F3\u3067\u3059\u3002",
+  communityScope: "\u78BA\u8A8D\u306E\u7BC4\u56F2",
+  communityScopeDesc: "\u30B3\u30DF\u30E5\u30CB\u30C6\u30A3\u63B2\u8F09\u306E\u30D7\u30E9\u30B0\u30A4\u30F3\u3068\u30C6\u30FC\u30DE\u3060\u3051\u3067\u3059\u3002\u624B\u52D5\u30B3\u30D4\u30FC\u3084 BRAT \u306E\u307F\u306E\u30D5\u30A9\u30EB\u30C0\u306F\u3001GitHub \u3092\u63A8\u6E2C\u3057\u3066\u898B\u306B\u884C\u304D\u307E\u305B\u3093\u3002",
+  rateRemaining: "GitHub API \u306E\u6B8B\u308A: {remaining} / {limit}",
+  skippedSideload: "\u30B3\u30DF\u30E5\u30CB\u30C6\u30A3\u672A\u63B2\u8F09\u306E\u305F\u3081 {count} \u4EF6\u3092\u5BFE\u8C61\u5916\u306B\u3057\u307E\u3057\u305F\u3002",
+  skippedBrat: "BRAT \u7BA1\u7406\u306E\u305F\u3081 {count} \u4EF6\u3092\u5BFE\u8C61\u5916\u306B\u3057\u307E\u3057\u305F\u3002"
 };
 var zhCn = {
   thanksInstall: "\u611F\u8C22\u5B89\u88C5\uFF01",
@@ -529,7 +610,14 @@ var zhCn = {
   rolledBack: "\u5DF2\u5C06 {name} \u8FD8\u539F\u4E3A\u4E0A\u4E00\u4EFD\u6587\u4EF6\u3002",
   rollbackFailed: "\u65E0\u6CD5\u8FD8\u539F {name}\uFF1A{error}",
   cmdRollback: "\u8FD8\u539F\u4E0A\u4E00\u4EFD\u6587\u4EF6",
-  noBackup: "\u6B64\u9879\u76EE\u6CA1\u6709\u4FDD\u5B58\u4E0A\u4E00\u4EFD\u6587\u4EF6\u3002"
+  noBackup: "\u6B64\u9879\u76EE\u6CA1\u6709\u4FDD\u5B58\u4E0A\u4E00\u4EFD\u6587\u4EF6\u3002",
+  skipBrat: "\u8DF3\u8FC7 BRAT \u7BA1\u7406\u7684\u9879\u76EE",
+  skipBratDesc: "\u82E5\u5DF2\u5B89\u88C5 BRAT\uFF0C\u7531\u5176\u7BA1\u7406\u7684\u9879\u76EE\u4EA4\u7ED9 BRAT\u3002\u9ED8\u8BA4\u5F00\u542F\u3002",
+  communityScope: "\u68C0\u67E5\u8303\u56F4",
+  communityScopeDesc: "\u53EA\u68C0\u67E5\u793E\u533A\u76EE\u5F55\u4E2D\u7684\u63D2\u4EF6\u548C\u4E3B\u9898\u3002\u4E0D\u4F1A\u6839\u636E GitHub \u731C\u6D4B\u624B\u52A8\u5B89\u88C5\u6216\u4EC5\u7531 BRAT \u7BA1\u7406\u7684\u6587\u4EF6\u5939\u3002",
+  rateRemaining: "GitHub API \u5269\u4F59\uFF1A{remaining} / {limit}",
+  skippedSideload: "\u56E0\u4E0D\u5728\u793E\u533A\u76EE\u5F55\u4E2D\uFF0C\u5DF2\u8DF3\u8FC7 {count} \u9879\u3002",
+  skippedBrat: "\u56E0\u7531 BRAT \u7BA1\u7406\uFF0C\u5DF2\u8DF3\u8FC7 {count} \u9879\u3002"
 };
 var zhTw = {
   thanksInstall: "\u611F\u8B1D\u5B89\u88DD\uFF01",
@@ -604,7 +692,14 @@ var zhTw = {
   rolledBack: "\u5DF2\u5C07 {name} \u9084\u539F\u70BA\u4E0A\u4E00\u4EFD\u6A94\u6848\u3002",
   rollbackFailed: "\u7121\u6CD5\u9084\u539F {name}\uFF1A{error}",
   cmdRollback: "\u9084\u539F\u4E0A\u4E00\u4EFD\u6A94\u6848",
-  noBackup: "\u6B64\u9805\u76EE\u6C92\u6709\u5132\u5B58\u4E0A\u4E00\u4EFD\u6A94\u6848\u3002"
+  noBackup: "\u6B64\u9805\u76EE\u6C92\u6709\u5132\u5B58\u4E0A\u4E00\u4EFD\u6A94\u6848\u3002",
+  skipBrat: "\u7565\u904E BRAT \u7BA1\u7406\u7684\u9805\u76EE",
+  skipBratDesc: "\u82E5\u5DF2\u5B89\u88DD BRAT\uFF0C\u7531\u5176\u7BA1\u7406\u7684\u9805\u76EE\u4EA4\u7D66 BRAT\u3002\u9810\u8A2D\u958B\u555F\u3002",
+  communityScope: "\u6AA2\u67E5\u7BC4\u570D",
+  communityScopeDesc: "\u53EA\u6AA2\u67E5\u793E\u7FA4\u76EE\u9304\u4E2D\u7684\u5916\u639B\u8207\u4E3B\u984C\u3002\u4E0D\u6703\u5F9E GitHub \u731C\u6E2C\u624B\u52D5\u5B89\u88DD\u6216\u50C5\u7531 BRAT \u7BA1\u7406\u7684\u8CC7\u6599\u593E\u3002",
+  rateRemaining: "GitHub API \u5269\u9918\uFF1A{remaining} / {limit}",
+  skippedSideload: "\u56E0\u4E0D\u5728\u793E\u7FA4\u76EE\u9304\u4E2D\uFF0C\u5DF2\u7565\u904E {count} \u9805\u3002",
+  skippedBrat: "\u56E0\u7531 BRAT \u7BA1\u7406\uFF0C\u5DF2\u7565\u904E {count} \u9805\u3002"
 };
 var ko = {
   thanksInstall: "\uC124\uCE58\uD574 \uC8FC\uC154\uC11C \uAC10\uC0AC\uD569\uB2C8\uB2E4!",
@@ -679,7 +774,14 @@ var ko = {
   rolledBack: "{name}\uC744(\uB97C) \uC774\uC804 \uD30C\uC77C\uB85C \uBCF5\uC6D0\uD588\uC2B5\uB2C8\uB2E4.",
   rollbackFailed: "{name}\uC744(\uB97C) \uBCF5\uC6D0\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: {error}",
   cmdRollback: "\uC774\uC804 \uD30C\uC77C\uB85C \uBCF5\uC6D0",
-  noBackup: "\uC774 \uD56D\uBAA9\uC758 \uC774\uC804 \uD30C\uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4."
+  noBackup: "\uC774 \uD56D\uBAA9\uC758 \uC774\uC804 \uD30C\uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+  skipBrat: "BRAT \uAD00\uB9AC \uD56D\uBAA9 \uAC74\uB108\uB6F0\uAE30",
+  skipBratDesc: "BRAT\uAC00 \uC788\uC73C\uBA74 \uADF8 \uBAA9\uB85D\uC758 \uD56D\uBAA9\uC740 BRAT\uC5D0 \uB9E1\uAE41\uB2C8\uB2E4. \uAE30\uBCF8\uC740 \uCF1C\uC9D0\uC785\uB2C8\uB2E4.",
+  communityScope: "\uD655\uC778 \uBC94\uC704",
+  communityScopeDesc: "\uCEE4\uBBA4\uB2C8\uD2F0 \uBAA9\uB85D\uC758 \uD50C\uB7EC\uADF8\uC778\uACFC \uD14C\uB9C8\uB9CC \uD655\uC778\uD569\uB2C8\uB2E4. \uC218\uB3D9 \uC124\uCE58\uB098 BRAT \uC804\uC6A9 \uD3F4\uB354\uB294 GitHub\uC5D0\uC11C \uCD94\uCE21\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+  rateRemaining: "GitHub API \uB0A8\uC740 \uD69F\uC218: {remaining} / {limit}",
+  skippedSideload: "\uCEE4\uBBA4\uB2C8\uD2F0 \uBAA9\uB85D\uC5D0 \uC5C6\uC5B4 {count}\uAC1C\uB97C \uAC74\uB108\uB6F0\uC5C8\uC2B5\uB2C8\uB2E4.",
+  skippedBrat: "BRAT \uAD00\uB9AC\uB77C\uC11C {count}\uAC1C\uB97C \uAC74\uB108\uB6F0\uC5C8\uC2B5\uB2C8\uB2E4."
 };
 var es = {
   thanksInstall: "\xA1Gracias por instalar!",
@@ -754,7 +856,14 @@ var es = {
   rolledBack: "Se restauraron los archivos anteriores de {name}.",
   rollbackFailed: "No se pudo restaurar {name}: {error}",
   cmdRollback: "Restaurar archivos anteriores",
-  noBackup: "No hay archivos anteriores guardados para este elemento."
+  noBackup: "No hay archivos anteriores guardados para este elemento.",
+  skipBrat: "Omitir elementos de BRAT",
+  skipBratDesc: "Si BRAT est\xE1 instalado, sus elementos se dejan a BRAT. Activado por defecto.",
+  communityScope: "Alcance de la comprobaci\xF3n",
+  communityScopeDesc: "Solo plugins y temas del directorio de la comunidad. No se busca en GitHub lo instalado a mano o solo con BRAT.",
+  rateRemaining: "GitHub API restante: {remaining} / {limit}",
+  skippedSideload: "Se omitieron {count} elementos que no est\xE1n en el directorio de la comunidad.",
+  skippedBrat: "Se omitieron {count} elementos gestionados por BRAT."
 };
 var de = {
   thanksInstall: "Danke f\xFCrs Installieren!",
@@ -829,7 +938,14 @@ var de = {
   rolledBack: "Vorherige Dateien f\xFCr {name} wiederhergestellt.",
   rollbackFailed: "{name} konnte nicht wiederhergestellt werden: {error}",
   cmdRollback: "Vorherige Dateien wiederherstellen",
-  noBackup: "Keine vorherigen Dateien f\xFCr diesen Eintrag gespeichert."
+  noBackup: "Keine vorherigen Dateien f\xFCr diesen Eintrag gespeichert.",
+  skipBrat: "Von BRAT verwaltete Eintr\xE4ge \xFCberspringen",
+  skipBratDesc: "Ist BRAT installiert, bleiben dessen Eintr\xE4ge bei BRAT. Standard: an.",
+  communityScope: "Pr\xFCfumfang",
+  communityScopeDesc: "Nur Plugins und Themes aus dem Community-Verzeichnis. Manuell oder nur per BRAT installierte Ordner werden nicht auf GitHub geraten.",
+  rateRemaining: "GitHub-API \xFCbrig: {remaining} / {limit}",
+  skippedSideload: "{count} Eintr\xE4ge \xFCbersprungen, die nicht im Community-Verzeichnis stehen.",
+  skippedBrat: "{count} von BRAT verwaltete Eintr\xE4ge \xFCbersprungen."
 };
 var fr = {
   thanksInstall: "Merci pour l\u2019installation !",
@@ -904,7 +1020,14 @@ var fr = {
   rolledBack: "Fichiers pr\xE9c\xE9dents restaur\xE9s pour {name}.",
   rollbackFailed: "Impossible de restaurer {name} : {error}",
   cmdRollback: "Restaurer les fichiers pr\xE9c\xE9dents",
-  noBackup: "Aucun fichier pr\xE9c\xE9dent enregistr\xE9 pour cet \xE9l\xE9ment."
+  noBackup: "Aucun fichier pr\xE9c\xE9dent enregistr\xE9 pour cet \xE9l\xE9ment.",
+  skipBrat: "Ignorer les \xE9l\xE9ments g\xE9r\xE9s par BRAT",
+  skipBratDesc: "Si BRAT est install\xE9, ses \xE9l\xE9ments lui sont laiss\xE9s. Activ\xE9 par d\xE9faut.",
+  communityScope: "P\xE9rim\xE8tre de la v\xE9rification",
+  communityScopeDesc: "Uniquement les plugins et th\xE8mes du r\xE9pertoire communautaire. Les dossiers install\xE9s \xE0 la main ou seulement via BRAT ne sont pas cherch\xE9s sur GitHub.",
+  rateRemaining: "GitHub API restante : {remaining} / {limit}",
+  skippedSideload: "{count} \xE9l\xE9ment(s) hors r\xE9pertoire communautaire ignor\xE9(s).",
+  skippedBrat: "{count} \xE9l\xE9ment(s) g\xE9r\xE9(s) par BRAT ignor\xE9(s)."
 };
 var pt = {
   thanksInstall: "Obrigado por instalar!",
@@ -979,7 +1102,14 @@ var pt = {
   rolledBack: "Arquivos anteriores de {name} restaurados.",
   rollbackFailed: "N\xE3o foi poss\xEDvel restaurar {name}: {error}",
   cmdRollback: "Restaurar arquivos anteriores",
-  noBackup: "N\xE3o h\xE1 arquivos anteriores salvos para este item."
+  noBackup: "N\xE3o h\xE1 arquivos anteriores salvos para este item.",
+  skipBrat: "Ignorar itens gerenciados pelo BRAT",
+  skipBratDesc: "Se o BRAT estiver instalado, os itens dele ficam com o BRAT. Ligado por padr\xE3o.",
+  communityScope: "Alcance da verifica\xE7\xE3o",
+  communityScopeDesc: "S\xF3 plugins e temas do diret\xF3rio da comunidade. Pastas instaladas \xE0 m\xE3o ou s\xF3 pelo BRAT n\xE3o s\xE3o buscadas no GitHub.",
+  rateRemaining: "GitHub API restante: {remaining} / {limit}",
+  skippedSideload: "{count} item(ns) fora do diret\xF3rio da comunidade ignorado(s).",
+  skippedBrat: "{count} item(ns) gerenciado(s) pelo BRAT ignorado(s)."
 };
 var ru = {
   thanksInstall: "\u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0443!",
@@ -1054,7 +1184,14 @@ var ru = {
   rolledBack: "\u041F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0435 \u0444\u0430\u0439\u043B\u044B {name} \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u044B.",
   rollbackFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C {name}: {error}",
   cmdRollback: "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u043F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0435 \u0444\u0430\u0439\u043B\u044B",
-  noBackup: "\u0414\u043B\u044F \u044D\u0442\u043E\u0433\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u0430 \u043D\u0435\u0442 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0445 \u043F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0445 \u0444\u0430\u0439\u043B\u043E\u0432."
+  noBackup: "\u0414\u043B\u044F \u044D\u0442\u043E\u0433\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u0430 \u043D\u0435\u0442 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0445 \u043F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0445 \u0444\u0430\u0439\u043B\u043E\u0432.",
+  skipBrat: "\u041F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u0442\u044C \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u044B BRAT",
+  skipBratDesc: "\u0415\u0441\u043B\u0438 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D BRAT, \u0435\u0433\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u044B \u043E\u0441\u0442\u0430\u044E\u0442\u0441\u044F \u0437\u0430 BRAT. \u0412\u043A\u043B\u044E\u0447\u0435\u043D\u043E \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E.",
+  communityScope: "\u041E\u0431\u043B\u0430\u0441\u0442\u044C \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438",
+  communityScopeDesc: "\u0422\u043E\u043B\u044C\u043A\u043E \u043F\u043B\u0430\u0433\u0438\u043D\u044B \u0438 \u0442\u0435\u043C\u044B \u0438\u0437 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 \u0441\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u0430. \u041F\u0430\u043F\u043A\u0438, \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044B\u0435 \u0432\u0440\u0443\u0447\u043D\u0443\u044E \u0438\u043B\u0438 \u0442\u043E\u043B\u044C\u043A\u043E \u0447\u0435\u0440\u0435\u0437 BRAT, \u043D\u0430 GitHub \u043D\u0435 \u0443\u0433\u0430\u0434\u044B\u0432\u0430\u044E\u0442\u0441\u044F.",
+  rateRemaining: "GitHub API \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C: {remaining} / {limit}",
+  skippedSideload: "\u041F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u043E {count} \u0432\u043D\u0435 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 \u0441\u043E\u043E\u0431\u0449\u0435\u0441\u0442\u0432\u0430.",
+  skippedBrat: "\u041F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u043E {count} \u043F\u043E\u0434 \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435\u043C BRAT."
 };
 var TABLES = {
   en,
@@ -1122,6 +1259,7 @@ var DEFAULT_SETTINGS = {
   waitLoadedTimeoutSeconds: 25,
   checkOnStartup: false,
   checkThemes: true,
+  skipBrat: true,
   ignoredItems: []
 };
 function asIgnoredItems(raw) {
@@ -1149,6 +1287,7 @@ function parseStorage(raw) {
     merged2.ignoredItems = asIgnoredItems(
       data.settings.ignoredItems
     );
+    if (typeof merged2.skipBrat !== "boolean") merged2.skipBrat = true;
     return {
       settings: merged2,
       lastSeenVersion: typeof data.lastSeenVersion === "string" ? data.lastSeenVersion : void 0
@@ -1156,6 +1295,7 @@ function parseStorage(raw) {
   }
   const merged = Object.assign({}, DEFAULT_SETTINGS, data);
   merged.ignoredItems = asIgnoredItems(data.ignoredItems);
+  if (typeof merged.skipBrat !== "boolean") merged.skipBrat = true;
   return {
     settings: merged,
     lastSeenVersion: void 0
@@ -1312,7 +1452,7 @@ async function evaluateRemote(item, repo, settings, state) {
     if (release.assets.length) assets = release.assets;
   }
   if (!isNewerVersion(latestVersion, item.version)) return null;
-  if (!notes && !state.rateLimited) {
+  if (settings.daysUntilShow > 0 && !notes && !state.rateLimited) {
     try {
       const release = await fetchLatestRelease(repo, settings.githubToken);
       if (release) {
@@ -1360,7 +1500,9 @@ async function checkForUpdates(app, settings) {
   const pending = pendingLazyIds(installed, lazy, api.plugins);
   await applyLazyWait(app, settings, pending, lazy);
   installed = await listInstalled(app);
+  resetRateLimitInfo();
   const registry = await loadCommunityRegistry();
+  const bratRepos = settings.skipBrat ? await readBratRepos(app) : /* @__PURE__ */ new Set();
   const pluginCandidates = installed.filter(
     (plugin) => !isEffectivelyDisabled(plugin, settings, lazy)
   );
@@ -1368,12 +1510,24 @@ async function checkForUpdates(app, settings) {
   const state = {
     errors: [],
     skipped: installed.length - pluginCandidates.length,
+    skippedSideload: 0,
+    skippedBrat: 0,
     rateLimited: false
   };
   await mapPool(pluginCandidates, CHECK_CONCURRENCY, async (plugin) => {
+    if (state.rateLimited) {
+      state.skipped += 1;
+      return;
+    }
     const repo = plugin.id === PLUGIN_ID ? OWN_REPO : registry.get(plugin.id);
     if (!repo) {
       state.skipped += 1;
+      state.skippedSideload += 1;
+      return;
+    }
+    if (settings.skipBrat && isBratManaged(repo, bratRepos)) {
+      state.skipped += 1;
+      state.skippedBrat += 1;
       return;
     }
     try {
@@ -1394,9 +1548,19 @@ async function checkForUpdates(app, settings) {
     const themeRegistry = await loadCommunityThemes();
     const themes = await listInstalledThemes(app);
     await mapPool(themes, CHECK_CONCURRENCY, async (theme) => {
+      if (state.rateLimited) {
+        state.skipped += 1;
+        return;
+      }
       const repo = themeRegistry.get(theme.id) || themeRegistry.get(theme.name);
       if (!repo) {
         state.skipped += 1;
+        state.skippedSideload += 1;
+        return;
+      }
+      if (settings.skipBrat && isBratManaged(repo, bratRepos)) {
+        state.skipped += 1;
+        state.skippedBrat += 1;
         return;
       }
       try {
@@ -1415,11 +1579,16 @@ async function checkForUpdates(app, settings) {
     });
   }
   updates.sort((a, b) => a.name.localeCompare(b.name));
+  const rate = getLastRateLimit();
   return {
     updates,
     skipped: state.skipped,
+    skippedSideload: state.skippedSideload,
+    skippedBrat: state.skippedBrat,
     errors: state.errors,
-    rateLimited: state.rateLimited
+    rateLimited: state.rateLimited,
+    rateRemaining: rate.remaining,
+    rateLimit: rate.limit
   };
 }
 
@@ -2096,6 +2265,20 @@ var GuardSettingTab = class extends import_obsidian5.PluginSettingTab {
         }
       },
       {
+        name: t("skipBrat"),
+        desc: t("skipBratDesc"),
+        control: {
+          type: "toggle",
+          key: "skipBrat",
+          defaultValue: settings.skipBrat
+        }
+      },
+      {
+        name: t("communityScope"),
+        desc: t("communityScopeDesc"),
+        render: () => void 0
+      },
+      {
         name: t("ignoreDisabled"),
         desc: t("ignoreDisabledDesc"),
         control: {
@@ -2215,6 +2398,9 @@ var GuardSettingTab = class extends import_obsidian5.PluginSettingTab {
       case "checkThemes":
         settings.checkThemes = Boolean(value);
         break;
+      case "skipBrat":
+        settings.skipBrat = Boolean(value);
+        break;
       case "ignoreDisabled":
         settings.ignoreDisabled = Boolean(value);
         break;
@@ -2288,6 +2474,14 @@ var GuardSettingTab = class extends import_obsidian5.PluginSettingTab {
         await this.host.saveSettings();
       });
     });
+    new import_obsidian5.Setting(containerEl).setName(t("skipBrat")).setDesc(t("skipBratDesc")).addToggle((toggle) => {
+      toggle.setValue(settings.skipBrat);
+      toggle.onChange(async (value) => {
+        settings.skipBrat = value;
+        await this.host.saveSettings();
+      });
+    });
+    new import_obsidian5.Setting(containerEl).setName(t("communityScope")).setDesc(t("communityScopeDesc"));
     new import_obsidian5.Setting(containerEl).setName(t("ignoreDisabled")).setDesc(t("ignoreDisabledDesc")).addToggle((toggle) => {
       toggle.setValue(settings.ignoreDisabled);
       toggle.onChange(async (value) => {
@@ -2519,7 +2713,23 @@ var KTechUpdateGuard = class extends import_obsidian6.Plugin {
       const result = await checkForUpdates(this.app, this.settings);
       const extra = [];
       if (result.rateLimited) extra.push(t("rateLimitedLong"));
-      for (const err of result.errors) extra.push(err);
+      if (result.rateRemaining !== null && result.rateLimit !== null && Number.isFinite(result.rateRemaining) && Number.isFinite(result.rateLimit)) {
+        extra.push(
+          t("rateRemaining", {
+            remaining: result.rateRemaining,
+            limit: result.rateLimit
+          })
+        );
+      }
+      if (result.skippedSideload) {
+        extra.push(t("skippedSideload", { count: result.skippedSideload }));
+      }
+      if (result.skippedBrat) {
+        extra.push(t("skippedBrat", { count: result.skippedBrat }));
+      }
+      for (const err of result.errors) {
+        if (!extra.includes(err)) extra.push(err);
+      }
       if (!result.updates.length) {
         this.setStatus(t("statusUpToDate"));
         new NoUpdatesModal(this.app, extra).open();
