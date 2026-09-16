@@ -11,7 +11,7 @@
 | Author | K-Tech Studio |
 | Repo | `crossbeat461-a11y/k-tech-update-guard` |
 | LP | https://k-tech-update-guard-lp.vercel.app/ |
-| Version | 1.0.3 |
+| Version | 1.0.4 |
 
 ## Privacy
 
@@ -73,7 +73,7 @@ src/version.ts       Semver compare
 
 ## Release
 
-Tag `1.0.3` → GitHub Release with main.js / manifest.json / styles.css.
+Tag `1.0.4` → GitHub Release with main.js / manifest.json / styles.css.
 
 Do not include "Obsidian" in `manifest.json` description.
 Do not include "Plugin" in `manifest.json` name.

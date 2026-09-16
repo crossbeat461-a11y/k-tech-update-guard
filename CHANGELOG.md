@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.4
+
+- Fix community review warning: typed check result and dedupe error messages without unsafe calls
+
+### 日本語
+
+- コミュニティ審査の Warning（型安全でない呼び出し）を修正。確認結果の型を明示し、エラーメッセージの重複除去を安全にした
+
 ## 1.0.3
 
 - Check newer versions from Release `manifest.json` first. GitHub API is used for wait-days and when you open release notes

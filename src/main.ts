@@ -10,6 +10,7 @@ import {
   parseStorage,
   toStorage,
   type AvailableUpdate,
+  type CheckResult,
   type GuardSettings,
 } from "./types";
 
@@ -110,7 +111,7 @@ export default class KTechUpdateGuard extends Plugin {
     this.setStatus(t("statusChecking"));
     new Notice(t("checkingNotice"));
     try {
-      const result = await checkForUpdates(this.app, this.settings);
+      const result: CheckResult = await checkForUpdates(this.app, this.settings);
       const extra: string[] = [];
       if (result.rateLimited) extra.push(t("rateLimitedLong"));
       if (
@@ -132,8 +133,12 @@ export default class KTechUpdateGuard extends Plugin {
       if (result.skippedBrat) {
         extra.push(t("skippedBrat", { count: result.skippedBrat }));
       }
-      for (const err of result.errors) {
-        if (!extra.includes(err)) extra.push(err);
+      if (result.errors.length) {
+        extra.splice(
+          0,
+          extra.length,
+          ...Array.from(new Set([...extra, ...result.errors]))
+        );
       }
 
       if (!result.updates.length) {

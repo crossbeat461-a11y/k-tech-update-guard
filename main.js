@@ -2727,8 +2727,12 @@ var KTechUpdateGuard = class extends import_obsidian6.Plugin {
       if (result.skippedBrat) {
         extra.push(t("skippedBrat", { count: result.skippedBrat }));
       }
-      for (const err of result.errors) {
-        if (!extra.includes(err)) extra.push(err);
+      if (result.errors.length) {
+        extra.splice(
+          0,
+          extra.length,
+          ...Array.from(/* @__PURE__ */ new Set([...extra, ...result.errors]))
+        );
       }
       if (!result.updates.length) {
         this.setStatus(t("statusUpToDate"));
